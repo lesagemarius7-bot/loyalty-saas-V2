@@ -3,6 +3,11 @@ import { createClient } from '@/lib/supabase/server'
 import { isEmailConfigured, ResendSendError, sendEmail } from '@/lib/email/resend'
 import { loyaltyCardReadyEmail } from '@/lib/email/templates'
 
+// Falls back to the known production URL if NEXT_PUBLIC_APP_URL isn't set on
+// the deployment — otherwise the download link in the email would literally
+// read "undefined/api/passes/download/...".
+const FALLBACK_APP_URL = 'https://loyalty-saas-iota.vercel.app'
+
 // Dashboard-only action ("Envoyer par e-mail" on /dashboard/customers). Uses the
 // authenticated client (not service role) so RLS's is_merchant_member() check is
 // what actually prevents a merchant from emailing someone else's customer — a
@@ -57,7 +62,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cus
       )
     }
 
-    const downloadUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/passes/download/${card.id}`
+    const downloadUrl = `${process.env.NEXT_PUBLIC_APP_URL || FALLBACK_APP_URL}/api/passes/download/${card.id}`
     const { subject, html } = loyaltyCardReadyEmail({
       merchantName: merchant.business_name,
       customerName: customer.full_name,
