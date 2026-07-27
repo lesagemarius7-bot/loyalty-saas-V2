@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { buttonVariants } from '@/components/ui/button'
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
@@ -6,8 +7,15 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-border">
         <div className="container flex h-16 items-center justify-between">
-          <Link href="/" className="text-lg font-semibold">
-            Loyalty
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/branding/loyalty-logo-horizontal.png"
+              alt="Loyalty"
+              width={405}
+              height={200}
+              priority
+              className="h-8 w-auto"
+            />
           </Link>
           <nav className="flex items-center gap-4">
             <Link href="/pricing" className="text-sm text-muted-foreground hover:text-foreground">
