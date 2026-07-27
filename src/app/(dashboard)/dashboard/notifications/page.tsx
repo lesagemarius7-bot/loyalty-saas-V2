@@ -4,8 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { SendCampaignForm } from '@/components/dashboard/send-campaign-form'
 import { DashboardErrorFallback } from '@/components/dashboard/dashboard-error-fallback'
 
-export default async function NotificationsPage() {
+export default async function NotificationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ template?: string }>
+}) {
   const { merchant } = await getCurrentMerchant()
+  const { template } = await searchParams
 
   try {
     const supabase = await createClient()
@@ -35,7 +40,7 @@ export default async function NotificationsPage() {
           </p>
         </div>
 
-        <SendCampaignForm recipientCount={recipientCount ?? 0} />
+        <SendCampaignForm recipientCount={recipientCount ?? 0} initialTemplateId={template} />
 
         <Card>
           <CardHeader>

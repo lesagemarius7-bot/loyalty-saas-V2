@@ -1,90 +1,44 @@
-import { Users, CreditCard, TrendingUp } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentMerchant } from '@/lib/get-current-merchant'
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
+import { computeDashboardOverview } from '@/lib/analytics/dashboard-overview'
+import { KpiCards } from '@/components/dashboard/overview/kpi-cards'
+import { QuickActions } from '@/components/dashboard/overview/quick-actions'
+import { WalletInstallsChart } from '@/components/dashboard/overview/wallet-installs-chart'
+import { WeekdayChart } from '@/components/dashboard/overview/weekday-chart'
+import { RecentActivityFeed } from '@/components/dashboard/overview/recent-activity-feed'
 import { DashboardErrorFallback } from '@/components/dashboard/dashboard-error-fallback'
+
+const DEFAULT_WINDOW_DAYS = 30
 
 export default async function DashboardOverviewPage() {
   const { merchant } = await getCurrentMerchant()
 
   try {
     const supabase = await createClient()
-
-    const [
-      { count: customerCount, error: customersError },
-      { count: cardCount, error: cardsError },
-      { data: recentTransactions, error: transactionsError },
-    ] = await Promise.all([
-      supabase.from('customers').select('*', { count: 'exact', head: true }).eq('merchant_id', merchant.id),
-      supabase.from('loyalty_cards').select('*', { count: 'exact', head: true }).eq('merchant_id', merchant.id),
-      supabase
-        .from('transactions')
-        .select('points_delta, type, created_at, loyalty_cards(customer:customers(full_name))')
-        .eq('merchant_id', merchant.id)
-        .order('created_at', { ascending: false })
-        .limit(10),
-    ])
-
-    // None of these are fatal individually — each has its own fallback below —
-    // but a query error must not be silently treated as "zero/empty", so log it
-    // for anyone debugging a dashboard that looks emptier than it should.
-    if (customersError) console.error('[dashboard] customers count failed', customersError)
-    if (cardsError) console.error('[dashboard] cards count failed', cardsError)
-    if (transactionsError) console.error('[dashboard] transactions fetch failed', transactionsError)
-
-    const pointsIssuedThisMonth = (recentTransactions ?? [])
-      .filter((t) => t.type === 'earn' && new Date(t.created_at).getMonth() === new Date().getMonth())
-      .reduce((sum, t) => sum + t.points_delta, 0)
-
-    const stats = [
-      { label: 'Clients', value: customerCount ?? 0, icon: Users },
-      { label: 'Cartes actives', value: cardCount ?? 0, icon: CreditCard },
-      { label: 'Points ce mois-ci', value: pointsIssuedThisMonth, icon: TrendingUp },
-    ]
+    const overview = await computeDashboardOverview(supabase, merchant, DEFAULT_WINDOW_DAYS)
+    const enrollmentUrl = `${process.env.NEXT_PUBLIC_APP_URL}/join/${merchant.slug}`
 
     return (
       <div className="space-y-8">
         <div>
           <h1 className="text-2xl font-semibold">Vue d’ensemble</h1>
-          <p className="text-muted-foreground">Bienvenue, {merchant.business_name}.</p>
+          <p className="text-muted-foreground">
+            {overview.onboarding.hasAnyCustomers
+              ? `Bienvenue, ${merchant.business_name}.`
+              : `Bienvenue, ${merchant.business_name} — partagez votre QR code pour enrôler votre premier client.`}
+          </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          {stats.map((stat) => (
-            <Card key={stat.label}>
-              <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
-                <CardDescription>{stat.label}</CardDescription>
-                <stat.icon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold">{stat.value}</p>
-              </CardContent>
-            </Card>
-          ))}
+        <KpiCards kpis={overview.kpis} />
+
+        <QuickActions quickActions={overview.quickActions} enrollmentUrl={enrollmentUrl} />
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <WalletInstallsChart initialData={overview.charts.walletInstallsByDay} initialWindowDays={DEFAULT_WINDOW_DAYS} />
+          <WeekdayChart visitsByWeekday={overview.charts.visitsByWeekday} />
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Activité récente</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {recentTransactions && recentTransactions.length > 0 ? (
-              <ul className="divide-y divide-border">
-                {recentTransactions.map((t, i) => (
-                  <li key={i} className="flex items-center justify-between py-3 text-sm">
-                    <span>{t.loyalty_cards?.customer?.full_name ?? 'Client'}</span>
-                    <span className={t.points_delta >= 0 ? 'text-emerald-600' : 'text-destructive'}>
-                      {t.points_delta >= 0 ? '+' : ''}
-                      {t.points_delta} pts
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-muted-foreground">Aucune activité pour le moment.</p>
-            )}
-          </CardContent>
-        </Card>
+        <RecentActivityFeed events={overview.recentActivity} />
       </div>
     )
   } catch (err) {

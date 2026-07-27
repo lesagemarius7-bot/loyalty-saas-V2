@@ -3,6 +3,7 @@ import { getCurrentMerchant } from '@/lib/get-current-merchant'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { DashboardErrorFallback } from '@/components/dashboard/dashboard-error-fallback'
 import { MerchantCityForm } from '@/components/dashboard/merchant-city-form'
+import { MerchantAvgBasketForm } from '@/components/dashboard/merchant-avg-basket-form'
 
 export default async function SettingsPage() {
   const { merchant } = await getCurrentMerchant()
@@ -42,6 +43,18 @@ export default async function SettingsPage() {
           </CardHeader>
           <CardContent>
             <MerchantCityForm merchantId={merchant.id} initialCity={merchant.city} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Panier moyen</CardTitle>
+            <CardDescription>
+              Utilisé pour estimer le « Chiffre d’affaires stimulé » sur votre tableau de bord.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <MerchantAvgBasketForm merchantId={merchant.id} initialValue={merchant.avg_basket_value} />
           </CardContent>
         </Card>
       </div>

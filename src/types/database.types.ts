@@ -20,6 +20,7 @@ type MerchantRow = {
   brand_color: string
   card_text_color: string
   city: string | null
+  avg_basket_value: number | null
   stripe_customer_id: string | null
   stripe_subscription_id: string | null
   subscription_status: 'trialing' | 'active' | 'past_due' | 'canceled' | 'incomplete'

@@ -15,14 +15,23 @@ const MAX_LENGTH = 150
 // pre-written message — one click still needs a few words of real content
 // before it means anything.
 const TEMPLATES = [
-  { label: 'Plat du jour 🍽️', text: '🍽️ Plat du jour : ' },
-  { label: 'Offre Flash ⚡', text: '⚡ Offre flash : ' },
-  { label: 'Information 📢', text: '📢 Information : ' },
+  { id: 'plat-du-jour', label: 'Plat du jour 🍽️', text: '🍽️ Plat du jour : ' },
+  { id: 'offre-flash', label: 'Offre Flash ⚡', text: '⚡ Offre flash : ' },
+  { id: 'information', label: 'Information 📢', text: '📢 Information : ' },
 ]
 
-export function SendCampaignForm({ recipientCount }: { recipientCount: number }) {
+export function SendCampaignForm({
+  recipientCount,
+  initialTemplateId,
+}: {
+  recipientCount: number
+  /** Preselects a template — set via ?template=… from the dashboard's "Animation Flash" quick action. */
+  initialTemplateId?: string
+}) {
   const router = useRouter()
-  const [message, setMessage] = useState('')
+  const [message, setMessage] = useState(
+    () => TEMPLATES.find((t) => t.id === initialTemplateId)?.text ?? ''
+  )
   const [confirming, setConfirming] = useState(false)
   const [sending, setSending] = useState(false)
   const { toast, showToast, dismiss } = useToast()
