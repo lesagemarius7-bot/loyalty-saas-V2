@@ -44,6 +44,15 @@ export default async function CardPage({ params }: { params: Promise<{ cardId: s
         stampIcon={card.program.stamp_icon}
         serialNumber={card.serial_number}
         qrCodeDataUrl={qrDataUrl}
+        backgroundStyle={card.program.background_style}
+        gradientSecondaryColor={card.program.gradient_secondary_color}
+        bannerImageUrl={card.program.banner_image_url}
+        backAddress={card.program.back_address}
+        backPhone={card.program.back_phone}
+        backHours={card.program.back_hours}
+        backInstagramUrl={card.program.back_instagram_url}
+        backGoogleReviewUrl={card.program.back_google_review_url}
+        backTerms={card.program.back_terms}
       />
 
       <p className="max-w-[340px] text-center text-xs text-muted-foreground">

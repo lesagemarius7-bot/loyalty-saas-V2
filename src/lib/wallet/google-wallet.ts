@@ -59,13 +59,42 @@ function loyaltyObjectId(cardId: string) {
 // /api/points/add so an already-saved pass picks up the new balance.
 export async function upsertGoogleLoyaltyObject(card: LoyaltyCardWithRelations, merchant: Merchant) {
   const client = await authClient().getClient()
+  const program = card.program
+
+  const infoRows: { columns: { label: string; value: string }[] }[] = []
+  if (program.back_address) infoRows.push({ columns: [{ label: 'Adresse', value: program.back_address }] })
+  if (program.back_phone) infoRows.push({ columns: [{ label: 'Téléphone', value: program.back_phone }] })
+  if (program.back_hours) infoRows.push({ columns: [{ label: 'Horaires', value: program.back_hours }] })
+  if (program.back_terms) infoRows.push({ columns: [{ label: 'Conditions', value: program.back_terms }] })
+
+  const linkUris: { uri: string; description: string; id: string }[] = []
+  if (program.back_instagram_url) {
+    linkUris.push({ uri: program.back_instagram_url, description: 'Instagram', id: 'instagram' })
+  }
+  if (program.back_google_review_url) {
+    linkUris.push({ uri: program.back_google_review_url, description: 'Laissez-nous un avis ⭐', id: 'googleReview' })
+  }
 
   const classPayload = {
     id: loyaltyClassId(merchant),
     issuerName: merchant.business_name,
     programName: card.program.name,
     reviewStatus: 'UNDER_REVIEW',
+    // hexBackgroundColor is solid-only — like Apple's storeCard, the Wallet
+    // Objects API has no native gradient support, so the "gradient" theme
+    // only shows as real pixels via heroImage below.
     hexBackgroundColor: merchant.brand_color,
+    ...(program.banner_image_url && {
+      heroImage: { sourceUri: { uri: program.banner_image_url } },
+    }),
+    ...(infoRows.length > 0 && { infoModuleData: { labelValueRows: infoRows } }),
+    ...(linkUris.length > 0 && { linksModuleData: { uris: linkUris } }),
+    // Triggers the lock-screen proximity notification (roughly 50-100m
+    // radius) when both coordinates are set.
+    ...(program.latitude !== null &&
+      program.longitude !== null && {
+        locations: [{ latitude: program.latitude, longitude: program.longitude }],
+      }),
   }
 
   await upsertResource(client, `${API_BASE}/loyaltyClass`, loyaltyClassId(merchant), classPayload)

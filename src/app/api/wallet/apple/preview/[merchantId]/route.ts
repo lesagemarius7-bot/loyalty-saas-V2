@@ -48,6 +48,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ merc
           rewardThreshold: program?.reward_threshold ?? 10,
           rewardDescription: program?.reward_description ?? 'Récompense',
           stampIcon: program?.stamp_icon ?? '✓',
+          backgroundStyle: program?.background_style ?? 'solid',
+          gradientSecondaryColor: program?.gradient_secondary_color ?? '#0f172a',
+          bannerImageUrl: program?.banner_image_url ?? null,
+          backAddress: program?.back_address ?? null,
+          backPhone: program?.back_phone ?? null,
+          backHours: program?.back_hours ?? null,
+          backInstagramUrl: program?.back_instagram_url ?? null,
+          backGoogleReviewUrl: program?.back_google_review_url ?? null,
+          backTerms: program?.back_terms ?? '1 tampon par passage en caisse.',
+          latitude: program?.latitude ?? null,
+          longitude: program?.longitude ?? null,
         }
 
     const { card, merchant: previewMerchant } = buildPreviewCard(merchant, overrides)

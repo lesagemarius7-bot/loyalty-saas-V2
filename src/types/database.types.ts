@@ -49,6 +49,17 @@ type LoyaltyProgramRow = {
   inactivity_threshold_days: number
   inactivity_message: string
   smart_engagement_enabled: boolean
+  background_style: 'solid' | 'gradient'
+  gradient_secondary_color: string
+  banner_image_url: string | null
+  back_address: string | null
+  back_phone: string | null
+  back_hours: string | null
+  back_instagram_url: string | null
+  back_google_review_url: string | null
+  back_terms: string
+  latitude: number | null
+  longitude: number | null
   created_at: string
 }
 

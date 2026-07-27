@@ -72,11 +72,40 @@ function loadModelBuffers() {
   return buffers
 }
 
+// Apple's storeCard strip image (recommended 375x123pt / 750x246px @2x) is the
+// only way to put real imagery — including a gradient baked into pixels — on
+// an Apple pass: unlike the web/Google previews, PKPass backgroundColor only
+// ever accepts a single solid color, there is no native gradient support.
+// Best-effort: a broken/unreachable banner URL must not break pass
+// generation, so this returns null on any failure and the caller falls back
+// to the plain solid-color background.
+async function fetchStripImage(bannerImageUrl: string): Promise<Buffer | null> {
+  try {
+    const res = await fetch(bannerImageUrl)
+    if (!res.ok) return null
+    const arrayBuffer = await res.arrayBuffer()
+    return Buffer.from(arrayBuffer)
+  } catch (err) {
+    console.error('[apple-pass] failed to fetch banner image', err)
+    return null
+  }
+}
+
 export async function generateAppleLoyaltyPass(
   card: LoyaltyCardWithRelations,
   merchant: Merchant
 ): Promise<Buffer> {
-  const pass = new PKPass(loadModelBuffers(), loadCertificates(), {
+  const buffers = loadModelBuffers()
+
+  if (card.program.banner_image_url) {
+    const stripImage = await fetchStripImage(card.program.banner_image_url)
+    if (stripImage) {
+      buffers['strip.png'] = stripImage
+      buffers['strip@2x.png'] = stripImage
+    }
+  }
+
+  const pass = new PKPass(buffers, loadCertificates(), {
     serialNumber: card.serial_number,
     description: `${merchant.business_name} — carte de fidélité`,
     organizationName: merchant.business_name,
@@ -113,6 +142,39 @@ export async function generateAppleLoyaltyPass(
       label: 'Dernier message',
       value: card.last_message,
       changeMessage: '%@',
+    })
+  }
+
+  // Practical-info backfields — every field is optional at the DB level, so
+  // each is only added when the merchant actually filled it in, rather than
+  // shipping empty rows on the back of the pass.
+  const program = card.program
+  if (program.back_address) {
+    pass.backFields.push({ key: 'address', label: 'Adresse', value: program.back_address })
+  }
+  if (program.back_phone) {
+    pass.backFields.push({ key: 'phone', label: 'Téléphone', value: program.back_phone })
+  }
+  if (program.back_hours) {
+    pass.backFields.push({ key: 'hours', label: 'Horaires', value: program.back_hours })
+  }
+  if (program.back_instagram_url) {
+    pass.backFields.push({ key: 'instagram', label: 'Instagram', value: program.back_instagram_url })
+  }
+  if (program.back_google_review_url) {
+    pass.backFields.push({ key: 'googleReview', label: 'Laissez-nous un avis ⭐', value: program.back_google_review_url })
+  }
+  if (program.back_terms) {
+    pass.backFields.push({ key: 'terms', label: 'Conditions', value: program.back_terms })
+  }
+
+  // Geofencing: iOS surfaces relevantText as a lock-screen notification when
+  // the customer is within roughly 50-100m of these coordinates.
+  if (program.latitude !== null && program.longitude !== null) {
+    pass.setLocations({
+      latitude: program.latitude,
+      longitude: program.longitude,
+      relevantText: 'Vous êtes tout près ! Présentez votre carte pour cumuler des tampons.',
     })
   }
 

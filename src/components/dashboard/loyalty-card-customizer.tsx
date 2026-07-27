@@ -13,7 +13,22 @@ import { WalletNotConfiguredModal } from '@/components/dashboard/wallet-not-conf
 import type { LoyaltyProgram, Merchant } from '@/types'
 
 const THRESHOLD_PRESETS = [5, 8, 10, 12]
-const STAMP_ICON_OPTIONS = ['✓', '⭐', '☕', '🍕', '🎁', '🍰']
+
+const STAMP_ICON_GROUPS: { label: string; icons: string[] }[] = [
+  { label: '☕ Café / Bakery', icons: ['☕', '🥐', '🧋', '🍰'] },
+  { label: '🍔 Resto / Fast-Food', icons: ['🍔', '🍕', '🌮', '🍣'] },
+  { label: '✂️ Beauté / Barber', icons: ['✂️', '💅', '💈', '💆'] },
+  { label: '💎 Commerce / VIP', icons: ['⭐', '🛍️', '💎', '🎁', '✓'] },
+]
+
+const THEME_PRESETS: { label: string; primary: string; secondary: string }[] = [
+  { label: '☕ Coffee & Bakery', primary: '#3B2314', secondary: '#8C5A3C' },
+  { label: '✂️ Beauty & Barber', primary: '#111111', secondary: '#C5A059' },
+  { label: '🍕 Food & Restaurant', primary: '#8B0000', secondary: '#D9534F' },
+  { label: '💎 Luxury / VIP', primary: '#0F172A', secondary: '#1E293B' },
+]
+
+type SettingsTab = 'general' | 'back' | 'geo'
 
 export function LoyaltyCardCustomizer({
   merchant,
@@ -37,6 +52,26 @@ export function LoyaltyCardCustomizer({
   const [stampIcon, setStampIcon] = useState(program.stamp_icon)
   const [previewBalance, setPreviewBalance] = useState(Math.min(3, program.reward_threshold))
   const [walletStyle, setWalletStyle] = useState<'apple' | 'google'>('apple')
+
+  // Premium visual customization
+  const [backgroundStyle, setBackgroundStyle] = useState<'solid' | 'gradient'>(program.background_style)
+  const [gradientSecondaryColor, setGradientSecondaryColor] = useState(program.gradient_secondary_color)
+  const [bannerImageUrl, setBannerImageUrl] = useState(program.banner_image_url ?? '')
+
+  // Back-of-card / practical info
+  const [backAddress, setBackAddress] = useState(program.back_address ?? '')
+  const [backPhone, setBackPhone] = useState(program.back_phone ?? '')
+  const [backHours, setBackHours] = useState(program.back_hours ?? '')
+  const [backInstagramUrl, setBackInstagramUrl] = useState(program.back_instagram_url ?? '')
+  const [backGoogleReviewUrl, setBackGoogleReviewUrl] = useState(program.back_google_review_url ?? '')
+  const [backTerms, setBackTerms] = useState(program.back_terms)
+
+  // Geofencing
+  const [latitude, setLatitude] = useState<string>(program.latitude !== null ? String(program.latitude) : '')
+  const [longitude, setLongitude] = useState<string>(program.longitude !== null ? String(program.longitude) : '')
+  const [geoStatus, setGeoStatus] = useState<'idle' | 'locating' | 'error'>('idle')
+
+  const [activeTab, setActiveTab] = useState<SettingsTab>('general')
 
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -85,6 +120,17 @@ export function LoyaltyCardCustomizer({
           rewardDescription,
           stampIcon,
           previewBalance: Math.min(previewBalance, rewardThreshold),
+          backgroundStyle,
+          gradientSecondaryColor,
+          bannerImageUrl: bannerImageUrl || null,
+          backAddress: backAddress || null,
+          backPhone: backPhone || null,
+          backHours: backHours || null,
+          backInstagramUrl: backInstagramUrl || null,
+          backGoogleReviewUrl: backGoogleReviewUrl || null,
+          backTerms: backTerms || null,
+          latitude: latitude !== '' ? Number(latitude) : null,
+          longitude: longitude !== '' ? Number(longitude) : null,
         }),
       }).catch(() => {
         // Best-effort — the preview routes fall back to saved merchant/program
@@ -92,7 +138,28 @@ export function LoyaltyCardCustomizer({
       })
     }, 500)
     return () => clearTimeout(timeout)
-  }, [businessName, subtitle, logoUrl, brandColor, textColor, rewardThreshold, rewardDescription, stampIcon, previewBalance])
+  }, [
+    businessName,
+    subtitle,
+    logoUrl,
+    brandColor,
+    textColor,
+    rewardThreshold,
+    rewardDescription,
+    stampIcon,
+    previewBalance,
+    backgroundStyle,
+    gradientSecondaryColor,
+    bannerImageUrl,
+    backAddress,
+    backPhone,
+    backHours,
+    backInstagramUrl,
+    backGoogleReviewUrl,
+    backTerms,
+    latitude,
+    longitude,
+  ])
 
   async function handleSave(event: React.FormEvent) {
     event.preventDefault()
@@ -106,6 +173,17 @@ export function LoyaltyCardCustomizer({
       reward_threshold: rewardThreshold,
       reward_description: rewardDescription,
       stamp_icon: stampIcon,
+      background_style: backgroundStyle,
+      gradient_secondary_color: gradientSecondaryColor,
+      banner_image_url: bannerImageUrl || null,
+      back_address: backAddress || null,
+      back_phone: backPhone || null,
+      back_hours: backHours || null,
+      back_instagram_url: backInstagramUrl || null,
+      back_google_review_url: backGoogleReviewUrl || null,
+      back_terms: backTerms || '1 tampon par passage en caisse.',
+      latitude: latitude !== '' ? Number(latitude) : null,
+      longitude: longitude !== '' ? Number(longitude) : null,
     }
 
     // A brand-new account (or one whose signup-time program insert failed) has
@@ -161,6 +239,23 @@ export function LoyaltyCardCustomizer({
     const { data } = supabase.storage.from('logos').getPublicUrl(path)
     setLogoUrl(data.publicUrl)
     setUploadingLogo(false)
+  }
+
+  function handleUseMyLocation() {
+    if (!navigator.geolocation) {
+      setGeoStatus('error')
+      return
+    }
+    setGeoStatus('locating')
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLatitude(String(position.coords.latitude))
+        setLongitude(String(position.coords.longitude))
+        setGeoStatus('idle')
+      },
+      () => setGeoStatus('error'),
+      { enableHighAccuracy: true, timeout: 10_000 }
+    )
   }
 
   // Fetches the pass instead of navigating a plain <a> to it, so we can inspect
@@ -225,138 +320,386 @@ export function LoyaltyCardCustomizer({
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="mb-4 flex gap-1 rounded-lg bg-secondary p-1">
+            {(
+              [
+                { id: 'general', label: 'Général' },
+                { id: 'back', label: 'Verso & Infos pratiques' },
+                { id: 'geo', label: 'Géolocalisation' },
+              ] as const
+            ).map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  'flex-1 rounded-md px-2 py-1.5 text-xs font-semibold transition-all',
+                  activeTab === tab.id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
           <form onSubmit={handleSave} className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Nom de l’enseigne</label>
-              <Input value={businessName} onChange={(e) => setBusinessName(e.target.value)} required />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Sous-titre</label>
-              <Input
-                value={subtitle}
-                onChange={(e) => setSubtitle(e.target.value)}
-                placeholder="Ex: Carte de fidélité"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Logo</label>
-              <Input
-                type="url"
-                placeholder="https://…"
-                value={logoUrl}
-                onChange={(e) => setLogoUrl(e.target.value)}
-              />
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoFileChange}
-                  disabled={uploadingLogo}
-                  className="text-xs text-muted-foreground file:mr-2 file:rounded-md file:border-0 file:bg-secondary file:px-2 file:py-1 file:text-xs"
-                />
-                {uploadingLogo && <span className="text-xs text-muted-foreground">Import…</span>}
-              </div>
-              {uploadError && <p className="text-xs text-destructive">{uploadError}</p>}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Couleur de fond</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={brandColor}
-                    onChange={(e) => setBrandColor(e.target.value)}
-                    className="h-10 w-12 shrink-0 rounded-md border border-border"
-                  />
-                  <Input value={brandColor} onChange={(e) => setBrandColor(e.target.value)} />
+            {activeTab === 'general' && (
+              <>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Nom de l’enseigne</label>
+                  <Input value={businessName} onChange={(e) => setBusinessName(e.target.value)} required />
                 </div>
-              </div>
 
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Couleur du texte</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={textColor}
-                    onChange={(e) => setTextColor(e.target.value)}
-                    className="h-10 w-12 shrink-0 rounded-md border border-border"
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Sous-titre</label>
+                  <Input
+                    value={subtitle}
+                    onChange={(e) => setSubtitle(e.target.value)}
+                    placeholder="Ex: Carte de fidélité"
                   />
-                  <Input value={textColor} onChange={(e) => setTextColor(e.target.value)} />
                 </div>
-              </div>
-            </div>
 
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Nombre de tampons/points requis</label>
-              <div className="flex flex-wrap gap-2">
-                {THRESHOLD_PRESETS.map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => setRewardThreshold(n)}
-                    className={cn(
-                      'rounded-md border px-3 py-1.5 text-sm font-medium transition-colors',
-                      rewardThreshold === n
-                        ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border hover:bg-secondary'
-                    )}
-                  >
-                    {n}
-                  </button>
-                ))}
-                <Input
-                  type="number"
-                  min={1}
-                  value={rewardThreshold}
-                  onChange={(e) => setRewardThreshold(Math.max(1, Number(e.target.value)))}
-                  className="w-24"
-                />
-              </div>
-            </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Logo</label>
+                  <Input
+                    type="url"
+                    placeholder="https://…"
+                    value={logoUrl}
+                    onChange={(e) => setLogoUrl(e.target.value)}
+                  />
+                  <div className="flex items-center gap-2 pt-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoFileChange}
+                      disabled={uploadingLogo}
+                      className="text-xs text-muted-foreground file:mr-2 file:rounded-md file:border-0 file:bg-secondary file:px-2 file:py-1 file:text-xs"
+                    />
+                    {uploadingLogo && <span className="text-xs text-muted-foreground">Import…</span>}
+                  </div>
+                  {uploadError && <p className="text-xs text-destructive">{uploadError}</p>}
+                </div>
 
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Icône de tampon</label>
-              <div className="flex flex-wrap gap-2">
-                {STAMP_ICON_OPTIONS.map((icon) => (
-                  <button
-                    key={icon}
-                    type="button"
-                    onClick={() => setStampIcon(icon)}
-                    aria-label={`Icône ${icon}`}
-                    className={cn(
-                      'flex h-10 w-10 items-center justify-center rounded-md border text-lg transition-colors',
-                      stampIcon === icon ? 'border-primary bg-primary/10' : 'border-border hover:bg-secondary'
-                    )}
-                  >
-                    {icon}
-                  </button>
-                ))}
-              </div>
-            </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Habillage visuel</label>
+                  <div className="flex w-fit rounded-md bg-secondary p-1">
+                    <button
+                      type="button"
+                      onClick={() => setBackgroundStyle('solid')}
+                      className={cn(
+                        'rounded px-3 py-1 text-xs font-semibold transition-all',
+                        backgroundStyle === 'solid' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
+                      )}
+                    >
+                      Couleur unie
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBackgroundStyle('gradient')}
+                      className={cn(
+                        'rounded px-3 py-1 text-xs font-semibold transition-all',
+                        backgroundStyle === 'gradient' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
+                      )}
+                    >
+                      Dégradé
+                    </button>
+                  </div>
+                </div>
 
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Récompense offerte</label>
-              <Input
-                value={rewardDescription}
-                onChange={(e) => setRewardDescription(e.target.value)}
-                placeholder="Ex: 1 café offert"
-              />
-            </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Thèmes métier 1-clic</label>
+                  <div className="flex flex-wrap gap-2">
+                    {THEME_PRESETS.map((theme) => (
+                      <button
+                        key={theme.label}
+                        type="button"
+                        onClick={() => {
+                          setBackgroundStyle('gradient')
+                          setBrandColor(theme.primary)
+                          setGradientSecondaryColor(theme.secondary)
+                        }}
+                        className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-secondary"
+                      >
+                        <span
+                          className="h-4 w-4 rounded-full border border-white/20"
+                          style={{ background: `linear-gradient(135deg, ${theme.primary}, ${theme.secondary})` }}
+                          aria-hidden
+                        />
+                        {theme.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Aperçu — solde de démo</label>
-              <Input
-                type="number"
-                min={0}
-                max={rewardThreshold}
-                value={clampedPreviewBalance}
-                onChange={(e) => setPreviewBalance(Number(e.target.value))}
-                className="w-24"
-              />
-            </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">
+                      {backgroundStyle === 'gradient' ? 'Couleur principale' : 'Couleur de fond'}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={brandColor}
+                        onChange={(e) => setBrandColor(e.target.value)}
+                        className="h-10 w-12 shrink-0 rounded-md border border-border"
+                      />
+                      <Input value={brandColor} onChange={(e) => setBrandColor(e.target.value)} />
+                    </div>
+                  </div>
+
+                  {backgroundStyle === 'gradient' ? (
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium">Couleur secondaire</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={gradientSecondaryColor}
+                          onChange={(e) => setGradientSecondaryColor(e.target.value)}
+                          className="h-10 w-12 shrink-0 rounded-md border border-border"
+                        />
+                        <Input value={gradientSecondaryColor} onChange={(e) => setGradientSecondaryColor(e.target.value)} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium">Couleur du texte</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={textColor}
+                          onChange={(e) => setTextColor(e.target.value)}
+                          className="h-10 w-12 shrink-0 rounded-md border border-border"
+                        />
+                        <Input value={textColor} onChange={(e) => setTextColor(e.target.value)} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {backgroundStyle === 'gradient' && (
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Couleur du texte</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={textColor}
+                        onChange={(e) => setTextColor(e.target.value)}
+                        className="h-10 w-12 shrink-0 rounded-md border border-border"
+                      />
+                      <Input value={textColor} onChange={(e) => setTextColor(e.target.value)} />
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Image de bannière (375×123px recommandé)</label>
+                  <Input
+                    type="url"
+                    placeholder="https://…"
+                    value={bannerImageUrl}
+                    onChange={(e) => setBannerImageUrl(e.target.value)}
+                  />
+                  {bannerImageUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={bannerImageUrl}
+                      alt="Aperçu de la bannière"
+                      className="mt-1 h-16 w-full rounded-md border border-border object-cover"
+                      onError={(e) => (e.currentTarget.style.display = 'none')}
+                    />
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Nombre de tampons/points requis</label>
+                  <div className="flex flex-wrap gap-2">
+                    {THRESHOLD_PRESETS.map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setRewardThreshold(n)}
+                        className={cn(
+                          'rounded-md border px-3 py-1.5 text-sm font-medium transition-colors',
+                          rewardThreshold === n
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-border hover:bg-secondary'
+                        )}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                    <Input
+                      type="number"
+                      min={1}
+                      value={rewardThreshold}
+                      onChange={(e) => setRewardThreshold(Math.max(1, Number(e.target.value)))}
+                      className="w-24"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Icône de tampon</label>
+                  {STAMP_ICON_GROUPS.map((group) => (
+                    <div key={group.label} className="space-y-1">
+                      <p className="text-xs text-muted-foreground">{group.label}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {group.icons.map((icon) => (
+                          <button
+                            key={icon}
+                            type="button"
+                            onClick={() => setStampIcon(icon)}
+                            aria-label={`Icône ${icon}`}
+                            className={cn(
+                              'flex h-10 w-10 items-center justify-center rounded-md border text-lg transition-colors',
+                              stampIcon === icon ? 'border-primary bg-primary/10' : 'border-border hover:bg-secondary'
+                            )}
+                          >
+                            {icon}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <div className="space-y-1 pt-1">
+                    <p className="text-xs text-muted-foreground">Icône personnalisée</p>
+                    <Input
+                      value={stampIcon}
+                      onChange={(e) => setStampIcon(e.target.value.slice(0, 4) || '✓')}
+                      className="w-20 text-center text-lg"
+                      maxLength={4}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Récompense offerte</label>
+                  <Input
+                    value={rewardDescription}
+                    onChange={(e) => setRewardDescription(e.target.value)}
+                    placeholder="Ex: 1 café offert"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Aperçu — solde de démo</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={rewardThreshold}
+                    value={clampedPreviewBalance}
+                    onChange={(e) => setPreviewBalance(Number(e.target.value))}
+                    className="w-24"
+                  />
+                </div>
+              </>
+            )}
+
+            {activeTab === 'back' && (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  Ces informations apparaissent au verso de la carte (Apple/Google Wallet) et dans l’aperçu ci-contre
+                  via le bouton « Voir le verso ».
+                </p>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Adresse de la boutique</label>
+                  <Input
+                    value={backAddress}
+                    onChange={(e) => setBackAddress(e.target.value)}
+                    placeholder="12 rue de la Paix, 75002 Paris"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Téléphone</label>
+                  <Input value={backPhone} onChange={(e) => setBackPhone(e.target.value)} placeholder="01 23 45 67 89" />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Horaires d’ouverture</label>
+                  <textarea
+                    value={backHours}
+                    onChange={(e) => setBackHours(e.target.value)}
+                    rows={2}
+                    placeholder={'Lun-Ven 8h-19h\nSam 9h-13h'}
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Lien Instagram</label>
+                  <Input
+                    type="url"
+                    value={backInstagramUrl}
+                    onChange={(e) => setBackInstagramUrl(e.target.value)}
+                    placeholder="https://instagram.com/…"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Lien d’avis Google ⭐</label>
+                  <Input
+                    type="url"
+                    value={backGoogleReviewUrl}
+                    onChange={(e) => setBackGoogleReviewUrl(e.target.value)}
+                    placeholder="https://g.page/r/…/review"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Conditions de validité</label>
+                  <textarea
+                    value={backTerms}
+                    onChange={(e) => setBackTerms(e.target.value)}
+                    rows={2}
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  />
+                </div>
+              </>
+            )}
+
+            {activeTab === 'geo' && (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  Un message apparaîtra sur l’écran verrouillé de vos clients quand ils seront dans un rayon de 50 à
+                  100m autour de votre boutique.
+                </p>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Latitude</label>
+                    <Input
+                      type="number"
+                      step="any"
+                      value={latitude}
+                      onChange={(e) => setLatitude(e.target.value)}
+                      placeholder="48.8566"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Longitude</label>
+                    <Input
+                      type="number"
+                      step="any"
+                      value={longitude}
+                      onChange={(e) => setLongitude(e.target.value)}
+                      placeholder="2.3522"
+                    />
+                  </div>
+                </div>
+
+                <Button type="button" variant="outline" onClick={handleUseMyLocation} disabled={geoStatus === 'locating'}>
+                  {geoStatus === 'locating' ? 'Localisation…' : 'Obtenir ma position'}
+                </Button>
+                {geoStatus === 'error' && (
+                  <p className="text-xs text-destructive">
+                    Impossible d’obtenir votre position — vérifiez les autorisations de localisation, ou saisissez les
+                    coordonnées manuellement.
+                  </p>
+                )}
+              </>
+            )}
 
             {error && <p className="text-sm text-destructive">{error}</p>}
 
@@ -406,6 +749,15 @@ export function LoyaltyCardCustomizer({
           stampIcon={stampIcon}
           serialNumber="APERÇU"
           walletStyle={walletStyle}
+          backgroundStyle={backgroundStyle}
+          gradientSecondaryColor={gradientSecondaryColor}
+          bannerImageUrl={bannerImageUrl || null}
+          backAddress={backAddress || null}
+          backPhone={backPhone || null}
+          backHours={backHours || null}
+          backInstagramUrl={backInstagramUrl || null}
+          backGoogleReviewUrl={backGoogleReviewUrl || null}
+          backTerms={backTerms || null}
         />
 
         <div className="w-full max-w-[340px] space-y-4 text-center">

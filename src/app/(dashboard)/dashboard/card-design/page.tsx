@@ -18,6 +18,17 @@ const DEFAULT_PROGRAM_FIELDS = {
   inactivity_threshold_days: 30,
   inactivity_message: 'On ne vous a pas vu depuis un moment ! Revenez vite pour cumuler des points 🎁',
   smart_engagement_enabled: false,
+  background_style: 'solid',
+  gradient_secondary_color: '#0f172a',
+  banner_image_url: null,
+  back_address: null,
+  back_phone: null,
+  back_hours: null,
+  back_instagram_url: null,
+  back_google_review_url: null,
+  back_terms: '1 tampon par passage en caisse.',
+  latitude: null,
+  longitude: null,
 } as const
 
 export default async function CardDesignPage() {
