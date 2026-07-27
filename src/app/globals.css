@@ -8,8 +8,14 @@
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
-    --primary: 262 83% 58%;
+    /* Matches the Loyalty logo's "L" mark (#453ee8), sampled directly from
+       public/branding/loyalty-logo-horizontal.png. */
+    --primary: 243 79% 58%;
     --primary-foreground: 0 0% 100%;
+    /* Matches the logo's star-badge green (#1cc08e) — used sparingly for
+       "recommended"/positive highlights, never as the dominant color. */
+    --accent: 162 75% 43%;
+    --accent-foreground: 0 0% 100%;
     --secondary: 220 14% 96%;
     --secondary-foreground: 222 47% 11%;
     --muted: 220 14% 96%;
@@ -25,8 +31,10 @@
     --foreground: 210 20% 98%;
     --card: 222 47% 10%;
     --card-foreground: 210 20% 98%;
-    --primary: 262 83% 65%;
+    --primary: 243 83% 68%;
     --primary-foreground: 222 47% 7%;
+    --accent: 162 70% 48%;
+    --accent-foreground: 222 47% 7%;
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 20% 98%;
     --muted: 217 33% 17%;

@@ -11,7 +11,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           width={405}
           height={200}
           priority
-          className="h-8 w-auto"
+          className="h-14 w-auto"
         />
       </Link>
       <div className="w-full max-w-sm">{children}</div>

@@ -61,7 +61,7 @@ export function PlanSelector({ merchantId, currentPlan }: { merchantId: string; 
             <CardHeader>
               <div className="flex items-center gap-2">
                 <CardTitle className="text-lg">{plan.label}</CardTitle>
-                {plan.recommended && <Badge>Recommandé</Badge>}
+                {plan.recommended && <Badge variant="accent">Recommandé</Badge>}
                 {isCurrent && <Badge variant="success">Sélectionné</Badge>}
               </div>
               <p className="text-2xl font-bold">

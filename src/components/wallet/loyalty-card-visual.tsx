@@ -150,7 +150,7 @@ export function LoyaltyCardVisual({
       )}
       <p className="font-mono text-[10px] tracking-widest text-slate-500">{serialNumber}</p>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/branding/loyalty-logo-horizontal.png" alt="Loyalty" className="h-3 w-auto opacity-60" />
+      <img src="/branding/loyalty-logo-horizontal.png" alt="Loyalty" className="h-5 w-auto opacity-75" />
     </div>
   )
 

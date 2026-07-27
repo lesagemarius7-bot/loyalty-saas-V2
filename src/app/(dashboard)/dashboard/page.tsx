@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentMerchant } from '@/lib/get-current-merchant'
 import { computeDashboardOverview } from '@/lib/analytics/dashboard-overview'
@@ -20,6 +21,14 @@ export default async function DashboardOverviewPage() {
 
     return (
       <div className="space-y-8">
+        <Image
+          src="/branding/loyalty-logo-horizontal.png"
+          alt="Loyalty"
+          width={405}
+          height={200}
+          className="h-10 w-auto"
+        />
+
         <div>
           <h1 className="text-2xl font-semibold">Vue d’ensemble</h1>
           <p className="text-muted-foreground">

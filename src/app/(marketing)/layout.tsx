@@ -14,7 +14,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
               width={405}
               height={200}
               priority
-              className="h-8 w-auto"
+              className="h-11 w-auto"
             />
           </Link>
           <nav className="flex items-center gap-4">

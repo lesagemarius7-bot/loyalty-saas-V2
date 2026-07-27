@@ -87,6 +87,7 @@ export default function LandingPage() {
               key={badge.label}
               className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary px-4 py-1.5 text-sm font-medium"
             >
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
               <span aria-hidden>{badge.emoji}</span>
               {badge.label}
             </span>
