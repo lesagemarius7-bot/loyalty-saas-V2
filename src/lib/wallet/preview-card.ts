@@ -52,6 +52,8 @@ export function buildPreviewCard(
     status: 'active',
     apple_pass_updated_at: null,
     google_object_id: null,
+    last_message: null,
+    last_message_at: null,
     created_at: now,
     customer: {
       id: previewId,

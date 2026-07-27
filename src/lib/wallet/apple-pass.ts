@@ -103,6 +103,19 @@ export async function generateAppleLoyaltyPass(
     value: `${card.program.reward_threshold} pts → ${card.program.reward_description}`,
   })
 
+  // changeMessage is what makes this show up as a lock-screen notification:
+  // when this field's value differs from what the device already has (after a
+  // push tells it to re-fetch), iOS shows the templated message instead of
+  // silently updating the pass in the background.
+  if (card.last_message) {
+    pass.backFields.push({
+      key: 'lastMessage',
+      label: 'Dernier message',
+      value: card.last_message,
+      changeMessage: '%@',
+    })
+  }
+
   pass.setBarcodes({
     message: card.serial_number,
     format: 'PKBarcodeFormatQR',

@@ -50,8 +50,8 @@ function loyaltyClassId(merchant: Merchant) {
   return `${issuerId()}.merchant_${merchant.id}`
 }
 
-function loyaltyObjectId(card: LoyaltyCardWithRelations) {
-  return `${issuerId()}.card_${card.id}`
+function loyaltyObjectId(cardId: string) {
+  return `${issuerId()}.card_${cardId}`
 }
 
 // Creates the class/object if missing, otherwise updates them with the current
@@ -71,7 +71,7 @@ export async function upsertGoogleLoyaltyObject(card: LoyaltyCardWithRelations, 
   await upsertResource(client, `${API_BASE}/loyaltyClass`, loyaltyClassId(merchant), classPayload)
 
   const objectPayload = {
-    id: loyaltyObjectId(card),
+    id: loyaltyObjectId(card.id),
     classId: loyaltyClassId(merchant),
     state: 'ACTIVE',
     accountName: card.customer.full_name,
@@ -79,7 +79,7 @@ export async function upsertGoogleLoyaltyObject(card: LoyaltyCardWithRelations, 
     barcode: { type: 'QR_CODE', value: card.serial_number },
   }
 
-  await upsertResource(client, `${API_BASE}/loyaltyObject`, loyaltyObjectId(card), objectPayload)
+  await upsertResource(client, `${API_BASE}/loyaltyObject`, loyaltyObjectId(card.id), objectPayload)
 }
 
 // PUT-if-exists-else-POST — the Wallet Objects API has no single upsert verb.
@@ -109,6 +109,26 @@ async function upsertResource(
   }
 }
 
+// Pushes a message onto an already-saved Google Wallet loyalty object — Google
+// surfaces it as a notification on the customer's device and as a message on
+// the card itself. The Apple equivalent needs a field changeMessage trick
+// (see generateAppleLoyaltyPass); Google has a dedicated endpoint for this.
+export async function sendGoogleWalletMessage(cardId: string, header: string, body: string): Promise<void> {
+  const client = await authClient().getClient()
+
+  const response = await client.request({
+    url: `${API_BASE}/loyaltyObject/${loyaltyObjectId(cardId)}/addMessage`,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: { header, body, messageType: 'TEXT' } }),
+    validateStatus: () => true,
+  })
+
+  if (response.status >= 400) {
+    throw new Error(`Google Wallet addMessage error ${response.status}: ${JSON.stringify(response.data)}`)
+  }
+}
+
 // Builds the "Add to Google Wallet" save link: a JWT self-signed with the service
 // account key (never sent to Google's auth server), referencing the object created
 // above. See https://developers.google.com/wallet/generic/web
@@ -119,7 +139,7 @@ export function createGoogleWalletSaveLink(card: LoyaltyCardWithRelations): stri
     aud: 'google',
     typ: 'savetowallet',
     iat: Math.floor(Date.now() / 1000),
-    payload: { loyaltyObjects: [{ id: loyaltyObjectId(card) }] },
+    payload: { loyaltyObjects: [{ id: loyaltyObjectId(card.id) }] },
   }
 
   const base64url = (obj: object) => Buffer.from(JSON.stringify(obj)).toString('base64url')

@@ -66,6 +66,8 @@ type LoyaltyCardRow = {
   status: 'active' | 'suspended'
   apple_pass_updated_at: string | null
   google_object_id: string | null
+  last_message: string | null
+  last_message_at: string | null
   created_at: string
 }
 
@@ -92,6 +94,14 @@ type CardPreviewSessionRow = {
   merchant_id: string
   payload: Json
   updated_at: string
+}
+
+type NotificationCampaignRow = {
+  id: string
+  merchant_id: string
+  message: string
+  recipient_count: number
+  created_at: string
 }
 
 export interface Database {
@@ -226,6 +236,20 @@ export interface Database {
             foreignKeyName: 'card_preview_sessions_merchant_id_fkey'
             columns: ['merchant_id']
             isOneToOne: true
+            referencedRelation: 'merchants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      notification_campaigns: {
+        Row: NotificationCampaignRow
+        Insert: Partial<NotificationCampaignRow> & { merchant_id: string; message: string }
+        Update: Partial<NotificationCampaignRow>
+        Relationships: [
+          {
+            foreignKeyName: 'notification_campaigns_merchant_id_fkey'
+            columns: ['merchant_id']
+            isOneToOne: false
             referencedRelation: 'merchants'
             referencedColumns: ['id']
           },
