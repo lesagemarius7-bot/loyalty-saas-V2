@@ -1,10 +1,9 @@
-// Clean text-based placeholders, not fabricated logo artwork — swap in a
-// real `logoUrl` per brand once real logo files are provided, and this
-// automatically switches from the styled wordmark to the real image.
+// Real logo files provided by the user via Drive, where available — falls
+// back to a clean text wordmark otherwise (never fabricated logo artwork).
 const BRANDS: { name: string; logoUrl: string | null }[] = [
-  { name: 'MedEat', logoUrl: null },
+  { name: 'MedEat', logoUrl: '/images/logo-medeat.png' },
   { name: 'Faguo', logoUrl: null },
-  { name: 'Maison du Monde', logoUrl: null },
+  { name: 'Maisons du Monde', logoUrl: '/images/logo-maisondumonde.png' },
 ]
 
 function BrandLogo({ name, logoUrl }: { name: string; logoUrl: string | null }) {
