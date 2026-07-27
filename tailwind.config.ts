@@ -48,6 +48,15 @@ const config: Config = {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      keyframes: {
+        'card-float': {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
+      },
+      animation: {
+        'card-float': 'card-float 6s ease-in-out infinite',
+      },
     },
   },
   plugins: [tailwindcssAnimate],

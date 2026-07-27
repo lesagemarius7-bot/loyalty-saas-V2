@@ -4,6 +4,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { PricingCards } from '@/components/marketing/pricing-cards'
 import { PocBanner } from '@/components/marketing/poc-banner'
+import { AnimatedWalletCards } from '@/components/marketing/animated-wallet-cards'
 
 const REASSURANCE_BADGES = [
   { emoji: '⚡', label: '100% Marque Blanche' },
@@ -74,7 +75,7 @@ export default function LandingPage() {
   return (
     <>
       {/* Hero */}
-      <section className="container py-24 text-center">
+      <section className="container overflow-x-hidden py-24 text-center">
         <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl">
           La carte de fidélité de votre commerce, directement dans la poche de vos clients.
         </h1>
@@ -103,6 +104,10 @@ export default function LandingPage() {
           <Link href="/pricing" className={buttonVariants({ variant: 'outline', size: 'lg' })}>
             Voir les tarifs
           </Link>
+        </div>
+
+        <div className="mt-16">
+          <AnimatedWalletCards />
         </div>
       </section>
 
