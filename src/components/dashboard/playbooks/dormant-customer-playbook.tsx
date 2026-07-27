@@ -13,19 +13,27 @@ import { useToast } from '@/hooks/use-toast'
 
 const THRESHOLD_PRESETS = [14, 21, 30]
 const MAX_MESSAGE_LENGTH = 150
+const DEFAULT_THRESHOLD_DAYS = 30
 
+// Accepts null/undefined even though the page tries to always pass real
+// values — a Supabase fetch error, a partially-applied migration, or a legacy
+// row from before these columns existed can all still surface here as
+// undefined at runtime despite what the page's own types promise. Every piece
+// of state below has its own fallback so the component can never crash on a
+// missing value (message.length on undefined was the concrete crash this
+// guards against).
 export function DormantCustomerPlaybook({
   initialEnabled,
   initialThresholdDays,
   initialMessage,
 }: {
-  initialEnabled: boolean
-  initialThresholdDays: number
-  initialMessage: string
+  initialEnabled: boolean | null | undefined
+  initialThresholdDays: number | null | undefined
+  initialMessage: string | null | undefined
 }) {
-  const [enabled, setEnabled] = useState(initialEnabled)
-  const [thresholdDays, setThresholdDays] = useState(initialThresholdDays)
-  const [message, setMessage] = useState(initialMessage)
+  const [enabled, setEnabled] = useState(initialEnabled ?? false)
+  const [thresholdDays, setThresholdDays] = useState(initialThresholdDays ?? DEFAULT_THRESHOLD_DAYS)
+  const [message, setMessage] = useState(initialMessage ?? '')
   const [togglingSwitch, setTogglingSwitch] = useState(false)
   const [savingSettings, setSavingSettings] = useState(false)
   const { toast, showToast, dismiss } = useToast()
