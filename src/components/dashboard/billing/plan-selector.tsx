@@ -7,37 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { createClient } from '@/lib/supabase/client'
-
-const PLANS = [
-  {
-    id: 'essentiel' as const,
-    label: 'Essentiel Wallet',
-    price: '49 €',
-    recommended: false,
-    tagline: 'Remplacez la carte papier par une carte digitale élégante.',
-    features: [
-      '📱 Carte Apple Wallet & Google Wallet illimitée (100% marque blanche)',
-      '☕ Icônes de tampons personnalisés & verso enrichi (avis Google, horaires, réseaux)',
-      '📢 Communications manuelles illimitées (plat du jour, offres flash, nouveautés)',
-      '📊 Tableau de bord d’activité de base',
-      '📲 QR code comptoir & chevalet à imprimer',
-    ],
-  },
-  {
-    id: 'performance_ia' as const,
-    label: 'Performance & CRM IA',
-    price: '89 €',
-    recommended: true,
-    tagline: 'Automatisez votre chiffre d’affaires et votre rétention client.',
-    features: [
-      '⭐ Tout ce qui est inclus dans l’offre Essentiel Wallet',
-      '🤖 Copilote Marketing IA autonome : relance anti-churn, détection météo, ciblage selon l’historique d’achat',
-      '⚡ Playbooks CRM 1-clic : relance clients dormants & boost jours creux',
-      '📍 Geofencing GPS : notification automatique à proximité du magasin',
-      '💰 Indicateurs ROI & CA stimulé estimé',
-    ],
-  },
-]
+import { PLANS } from '@/lib/billing/plans'
 
 export function PlanSelector({ merchantId, currentPlan }: { merchantId: string; currentPlan: 'essentiel' | 'performance_ia' }) {
   const router = useRouter()
@@ -65,7 +35,7 @@ export function PlanSelector({ merchantId, currentPlan }: { merchantId: string; 
                 {isCurrent && <Badge variant="success">Sélectionné</Badge>}
               </div>
               <p className="text-2xl font-bold">
-                {plan.price} <span className="text-sm font-normal text-muted-foreground">/ mois</span>
+                {plan.price} € <span className="text-sm font-normal text-muted-foreground">/ mois</span>
               </p>
               <CardDescription>{plan.tagline}</CardDescription>
             </CardHeader>
