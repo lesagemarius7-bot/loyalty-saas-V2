@@ -3,6 +3,7 @@ import { AlarmClock, Bell, MapPin, PartyPopper, QrCode, Repeat, Send, Smartphone
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { AnimatedWalletCards } from '@/components/marketing/animated-wallet-cards'
+import { PhoneShowcase } from '@/components/marketing/phone-showcase'
 import { BookDemoButton } from '@/components/marketing/book-demo-button'
 import { TrustedBy } from '@/components/marketing/trusted-by'
 
@@ -104,8 +105,9 @@ export default function LandingPage() {
           <BookDemoButton variant="outline" size="lg" />
         </div>
 
-        <div className="mt-16">
+        <div className="mt-16 flex flex-col items-center justify-center gap-10 lg:flex-row">
           <AnimatedWalletCards />
+          <PhoneShowcase />
         </div>
       </section>
 
