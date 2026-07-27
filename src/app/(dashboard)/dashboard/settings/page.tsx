@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { getCurrentMerchant } from '@/lib/get-current-merchant'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { DashboardErrorFallback } from '@/components/dashboard/dashboard-error-fallback'
+import { MerchantCityForm } from '@/components/dashboard/merchant-city-form'
 
 export default async function SettingsPage() {
   const { merchant } = await getCurrentMerchant()
@@ -29,6 +30,18 @@ export default async function SettingsPage() {
           </CardHeader>
           <CardContent>
             <code className="block truncate rounded-md bg-secondary px-3 py-2 text-sm">{enrollmentUrl}</code>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Localisation</CardTitle>
+            <CardDescription>
+              Utilisée par le Copilote Marketing pour tenir compte de la météo locale dans ses envois automatiques.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <MerchantCityForm merchantId={merchant.id} initialCity={merchant.city} />
           </CardContent>
         </Card>
       </div>

@@ -9,6 +9,8 @@ export type Transaction = Database['public']['Tables']['transactions']['Row']
 export type AppleWalletRegistration = Database['public']['Tables']['apple_wallet_registrations']['Row']
 export type CardPreviewSession = Database['public']['Tables']['card_preview_sessions']['Row']
 export type NotificationCampaign = Database['public']['Tables']['notification_campaigns']['Row']
+export type CustomerPurchaseHabits = Database['public']['Tables']['customer_purchase_habits']['Row']
+export type PosTransactionEvent = Database['public']['Tables']['pos_transaction_events']['Row']
 
 export type LoyaltyCardWithRelations = LoyaltyCard & {
   customer: Customer

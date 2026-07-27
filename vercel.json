@@ -3,6 +3,14 @@
     {
       "path": "/api/cron/inactivity-check",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/compute-purchase-habits",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/smart-engagement",
+      "schedule": "0 10 * * *"
     }
   ]
 }

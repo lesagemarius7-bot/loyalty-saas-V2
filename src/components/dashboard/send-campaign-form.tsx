@@ -10,6 +10,16 @@ import { useToast } from '@/hooks/use-toast'
 
 const MAX_LENGTH = 150
 
+// Pillar 1 — "animate your shop in 10 seconds": a starter string the merchant
+// finishes typing (the actual dish/offer always varies), not a fully
+// pre-written message — one click still needs a few words of real content
+// before it means anything.
+const TEMPLATES = [
+  { label: 'Plat du jour 🍽️', text: '🍽️ Plat du jour : ' },
+  { label: 'Offre Flash ⚡', text: '⚡ Offre flash : ' },
+  { label: 'Information 📢', text: '📢 Information : ' },
+]
+
 export function SendCampaignForm({ recipientCount }: { recipientCount: number }) {
   const router = useRouter()
   const [message, setMessage] = useState('')
@@ -63,6 +73,22 @@ export function SendCampaignForm({ recipientCount }: { recipientCount: number })
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {TEMPLATES.map((template) => (
+              <button
+                key={template.label}
+                type="button"
+                onClick={() => {
+                  setMessage(template.text)
+                  setConfirming(false)
+                }}
+                className="rounded-md border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-secondary"
+              >
+                {template.label}
+              </button>
+            ))}
+          </div>
+
           <div className="space-y-1">
             <textarea
               value={message}

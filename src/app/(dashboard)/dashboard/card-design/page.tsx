@@ -17,6 +17,7 @@ const DEFAULT_PROGRAM_FIELDS = {
   inactivity_reminder_enabled: false,
   inactivity_threshold_days: 30,
   inactivity_message: 'On ne vous a pas vu depuis un moment ! Revenez vite pour cumuler des points 🎁',
+  smart_engagement_enabled: false,
 } as const
 
 export default async function CardDesignPage() {

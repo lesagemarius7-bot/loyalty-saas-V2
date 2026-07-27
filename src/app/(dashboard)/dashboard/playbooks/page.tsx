@@ -1,8 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentMerchant } from '@/lib/get-current-merchant'
 import { DormantCustomerPlaybook } from '@/components/dashboard/playbooks/dormant-customer-playbook'
+import { SmartEngagementPlaybook } from '@/components/dashboard/playbooks/smart-engagement-playbook'
 import { RoadmapPlaybookCard } from '@/components/dashboard/playbooks/roadmap-playbook-card'
 import { DashboardErrorFallback } from '@/components/dashboard/dashboard-error-fallback'
+import { isWeatherConfigured } from '@/lib/weather/openweather'
 
 // Same graceful defaults as /dashboard/card-design — a brand-new account (or
 // one whose signup-time program insert failed) has no loyalty_programs row
@@ -19,7 +21,7 @@ export default async function PlaybooksPage() {
 
     const { data: program, error: programError } = await supabase
       .from('loyalty_programs')
-      .select('inactivity_reminder_enabled, inactivity_threshold_days, inactivity_message')
+      .select('inactivity_reminder_enabled, inactivity_threshold_days, inactivity_message, smart_engagement_enabled')
       .eq('merchant_id', merchant.id)
       .eq('is_active', true)
       .limit(1)
@@ -49,6 +51,11 @@ export default async function PlaybooksPage() {
           initialEnabled={program?.inactivity_reminder_enabled ?? false}
           initialThresholdDays={program?.inactivity_threshold_days ?? DEFAULT_THRESHOLD_DAYS}
           initialMessage={program?.inactivity_message ?? DEFAULT_MESSAGE}
+        />
+
+        <SmartEngagementPlaybook
+          initialEnabled={program?.smart_engagement_enabled ?? false}
+          weatherConfigured={isWeatherConfigured()}
         />
 
         <div className="grid gap-6 sm:grid-cols-2">

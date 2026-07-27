@@ -56,6 +56,7 @@ export function buildPreviewCard(
     last_message_at: null,
     last_visit_at: null,
     last_inactivity_notification_at: null,
+    last_smart_engagement_at: null,
     created_at: now,
     customer: {
       id: previewId,
@@ -77,6 +78,7 @@ export function buildPreviewCard(
       inactivity_reminder_enabled: false,
       inactivity_threshold_days: 30,
       inactivity_message: '',
+      smart_engagement_enabled: false,
       created_at: now,
     },
   }

@@ -19,6 +19,7 @@ type MerchantRow = {
   logo_url: string | null
   brand_color: string
   card_text_color: string
+  city: string | null
   stripe_customer_id: string | null
   stripe_subscription_id: string | null
   subscription_status: 'trialing' | 'active' | 'past_due' | 'canceled' | 'incomplete'
@@ -47,6 +48,7 @@ type LoyaltyProgramRow = {
   inactivity_reminder_enabled: boolean
   inactivity_threshold_days: number
   inactivity_message: string
+  smart_engagement_enabled: boolean
   created_at: string
 }
 
@@ -73,6 +75,7 @@ type LoyaltyCardRow = {
   last_message_at: string | null
   last_visit_at: string | null
   last_inactivity_notification_at: string | null
+  last_smart_engagement_at: string | null
   created_at: string
 }
 
@@ -106,8 +109,27 @@ type NotificationCampaignRow = {
   merchant_id: string
   message: string
   recipient_count: number
-  type: 'manual' | 'inactivity'
+  type: 'manual' | 'inactivity' | 'smart_engagement'
   created_at: string
+}
+
+type CustomerPurchaseHabitsRow = {
+  customer_id: string
+  merchant_id: string
+  preferred_time_of_day: 'morning' | 'midday' | 'evening' | null
+  visit_frequency_days: number | null
+  avg_points_per_visit: number | null
+  favorite_category: string | null
+  updated_at: string
+}
+
+type PosTransactionEventRow = {
+  id: string
+  merchant_id: string
+  customer_id: string | null
+  source: string
+  payload: Json
+  received_at: string
 }
 
 export interface Database {
@@ -257,6 +279,48 @@ export interface Database {
             columns: ['merchant_id']
             isOneToOne: false
             referencedRelation: 'merchants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      customer_purchase_habits: {
+        Row: CustomerPurchaseHabitsRow
+        Insert: Partial<CustomerPurchaseHabitsRow> & { customer_id: string; merchant_id: string }
+        Update: Partial<CustomerPurchaseHabitsRow>
+        Relationships: [
+          {
+            foreignKeyName: 'customer_purchase_habits_customer_id_fkey'
+            columns: ['customer_id']
+            isOneToOne: true
+            referencedRelation: 'customers'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'customer_purchase_habits_merchant_id_fkey'
+            columns: ['merchant_id']
+            isOneToOne: false
+            referencedRelation: 'merchants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      pos_transaction_events: {
+        Row: PosTransactionEventRow
+        Insert: Partial<PosTransactionEventRow> & { merchant_id: string; payload: Json }
+        Update: Partial<PosTransactionEventRow>
+        Relationships: [
+          {
+            foreignKeyName: 'pos_transaction_events_merchant_id_fkey'
+            columns: ['merchant_id']
+            isOneToOne: false
+            referencedRelation: 'merchants'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'pos_transaction_events_customer_id_fkey'
+            columns: ['customer_id']
+            isOneToOne: false
+            referencedRelation: 'customers'
             referencedColumns: ['id']
           },
         ]
