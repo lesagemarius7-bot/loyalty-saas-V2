@@ -25,6 +25,10 @@ type MerchantRow = {
   stripe_subscription_id: string | null
   subscription_status: 'trialing' | 'active' | 'past_due' | 'canceled' | 'incomplete'
   plan: string
+  poc_start_date: string
+  poc_duration_days: number
+  subscription_plan: 'essentiel' | 'performance_ia'
+  billing_status: 'poc_active' | 'active' | 'past_due' | 'canceled'
   created_at: string
   updated_at: string
 }

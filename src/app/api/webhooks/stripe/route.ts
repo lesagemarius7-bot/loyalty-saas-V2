@@ -32,6 +32,7 @@ export async function POST(request: Request) {
             stripe_customer_id: session.customer as string,
             stripe_subscription_id: session.subscription as string,
             subscription_status: 'active',
+            billing_status: 'active',
           })
           .eq('id', session.client_reference_id)
       }
@@ -43,9 +44,10 @@ export async function POST(request: Request) {
       const subscription = event.data.object as Stripe.Subscription
       const merchantId = subscription.metadata.merchant_id
       if (merchantId) {
+        const mappedStatus = mapStripeStatus(subscription.status)
         await supabase
           .from('merchants')
-          .update({ subscription_status: mapStripeStatus(subscription.status) })
+          .update({ subscription_status: mappedStatus, billing_status: mapToBillingStatus(mappedStatus) })
           .eq('id', merchantId)
       }
       break
@@ -69,4 +71,14 @@ function mapStripeStatus(status: Stripe.Subscription.Status) {
     default:
       return 'canceled'
   }
+}
+
+// billing_status has no 'trialing'/'incomplete' states of its own (those are
+// pre-POC Stripe-trial concepts this app doesn't use — the POC widget is the
+// trial) — both collapse to 'active' since a subscription in either state is
+// already past the free-POC phase from this app's perspective.
+function mapToBillingStatus(subscriptionStatus: ReturnType<typeof mapStripeStatus>): 'active' | 'past_due' | 'canceled' {
+  if (subscriptionStatus === 'past_due') return 'past_due'
+  if (subscriptionStatus === 'canceled') return 'canceled'
+  return 'active'
 }
