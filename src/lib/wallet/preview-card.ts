@@ -54,6 +54,8 @@ export function buildPreviewCard(
     google_object_id: null,
     last_message: null,
     last_message_at: null,
+    last_visit_at: null,
+    last_inactivity_notification_at: null,
     created_at: now,
     customer: {
       id: previewId,
@@ -72,6 +74,9 @@ export function buildPreviewCard(
       reward_description: overrides.rewardDescription || 'Récompense',
       stamp_icon: overrides.stampIcon || '✓',
       is_active: true,
+      inactivity_reminder_enabled: false,
+      inactivity_threshold_days: 30,
+      inactivity_message: '',
       created_at: now,
     },
   }

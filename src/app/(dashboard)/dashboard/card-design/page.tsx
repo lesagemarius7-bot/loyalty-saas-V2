@@ -13,6 +13,9 @@ const DEFAULT_PROGRAM_FIELDS = {
   reward_description: 'Récompense offerte',
   stamp_icon: '✓',
   is_active: true,
+  inactivity_reminder_enabled: false,
+  inactivity_threshold_days: 30,
+  inactivity_message: 'On ne vous a pas vu depuis un moment ! Revenez vite pour cumuler des points 🎁',
 } as const
 
 export default async function CardDesignPage() {

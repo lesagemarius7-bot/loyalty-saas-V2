@@ -88,7 +88,7 @@ export async function POST(request: Request) {
 
     await supabase
       .from('notification_campaigns')
-      .insert({ merchant_id: merchant.id, message, recipient_count: cards.length })
+      .insert({ merchant_id: merchant.id, message, recipient_count: cards.length, type: 'manual' })
 
     return NextResponse.json({
       ok: true,

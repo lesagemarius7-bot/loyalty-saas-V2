@@ -44,6 +44,9 @@ type LoyaltyProgramRow = {
   reward_description: string
   stamp_icon: string
   is_active: boolean
+  inactivity_reminder_enabled: boolean
+  inactivity_threshold_days: number
+  inactivity_message: string
   created_at: string
 }
 
@@ -68,6 +71,8 @@ type LoyaltyCardRow = {
   google_object_id: string | null
   last_message: string | null
   last_message_at: string | null
+  last_visit_at: string | null
+  last_inactivity_notification_at: string | null
   created_at: string
 }
 
@@ -101,6 +106,7 @@ type NotificationCampaignRow = {
   merchant_id: string
   message: string
   recipient_count: number
+  type: 'manual' | 'inactivity'
   created_at: string
 }
 
