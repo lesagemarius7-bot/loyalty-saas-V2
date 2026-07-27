@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { buttonVariants } from '@/components/ui/button'
+import { BookDemoButton } from '@/components/marketing/book-demo-button'
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -18,12 +19,10 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
             />
           </Link>
           <nav className="flex items-center gap-4">
-            <Link href="/pricing" className="text-sm text-muted-foreground hover:text-foreground">
-              Tarifs
-            </Link>
             <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground">
               Connexion
             </Link>
+            <BookDemoButton variant="outline" size="sm" />
             <Link href="/signup" className={buttonVariants({ size: 'sm' })}>
               Essayer gratuitement
             </Link>

@@ -2,9 +2,9 @@ import Link from 'next/link'
 import { AlarmClock, Bell, MapPin, PartyPopper, QrCode, Repeat, Send, Smartphone, Target } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { PricingCards } from '@/components/marketing/pricing-cards'
-import { PocBanner } from '@/components/marketing/poc-banner'
 import { AnimatedWalletCards } from '@/components/marketing/animated-wallet-cards'
+import { BookDemoButton } from '@/components/marketing/book-demo-button'
+import { TrustedBy } from '@/components/marketing/trusted-by'
 
 const REASSURANCE_BADGES = [
   { emoji: '⚡', label: '100% Marque Blanche' },
@@ -101,15 +101,15 @@ export default function LandingPage() {
           <Link href="/signup" className={buttonVariants({ size: 'lg' })}>
             Essayer gratuitement
           </Link>
-          <Link href="/pricing" className={buttonVariants({ variant: 'outline', size: 'lg' })}>
-            Voir les tarifs
-          </Link>
+          <BookDemoButton variant="outline" size="lg" />
         </div>
 
         <div className="mt-16">
           <AnimatedWalletCards />
         </div>
       </section>
+
+      <TrustedBy />
 
       {/* Pourquoi Loyalty ? */}
       <section className="container pb-24">
@@ -180,27 +180,11 @@ export default function LandingPage() {
           ))}
         </div>
 
-        <div className="mt-14 flex justify-center">
+        <div className="mt-14 flex justify-center gap-4">
           <Link href="/signup" className={buttonVariants({ size: 'lg' })}>
             Essayer gratuitement
           </Link>
-        </div>
-      </section>
-
-      {/* Offres & POC 2 mois offerts */}
-      <section className="border-t border-border bg-secondary/40 py-24">
-        <div className="container">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight">Des tarifs simples, sans surprise</h2>
-            <p className="mt-4 text-muted-foreground">
-              Deux formules, une seule décision : passive ou pilotée par l’IA.
-            </p>
-          </div>
-
-          <div className="mt-12">
-            <PocBanner />
-            <PricingCards />
-          </div>
+          <BookDemoButton variant="outline" size="lg" />
         </div>
       </section>
     </>
