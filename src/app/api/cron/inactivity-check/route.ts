@@ -20,11 +20,20 @@ export async function GET(request: Request) {
   try {
     const supabase = createServiceRoleClient()
 
-    const { data: programs } = await supabase
+    const { data: programs, error: programsError } = await supabase
       .from('loyalty_programs')
       .select('id, merchant_id, inactivity_threshold_days, inactivity_message')
       .eq('is_active', true)
       .eq('inactivity_reminder_enabled', true)
+
+    // A query error (e.g. a column missing because a migration wasn't applied)
+    // must not be treated the same as "no programs have this enabled" — the
+    // silent version of this bug reports {programsChecked: 0} and looks like a
+    // clean, uneventful run instead of a failure.
+    if (programsError) {
+      console.error('[cron/inactivity-check] failed to fetch programs', programsError)
+      return NextResponse.json({ error: programsError.message }, { status: 500 })
+    }
 
     const appleConfigured = isAppleWalletConfigured()
     const googleConfigured = isGoogleWalletConfigured()
@@ -36,11 +45,16 @@ export async function GET(request: Request) {
       const thresholdMs = program.inactivity_threshold_days * 24 * 60 * 60 * 1000
       const nowMs = Date.now()
 
-      const { data: cards } = await supabase
+      const { data: cards, error: cardsError } = await supabase
         .from('loyalty_cards')
         .select('id, google_object_id, created_at, last_visit_at, last_inactivity_notification_at')
         .eq('program_id', program.id)
         .eq('status', 'active')
+
+      if (cardsError) {
+        console.error('[cron/inactivity-check] failed to fetch cards for program', program.id, cardsError)
+        continue
+      }
 
       // Due = past the threshold AND not already reminded for *this*
       // inactivity episode. "This episode" is defined as: no reminder sent

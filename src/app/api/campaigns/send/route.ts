@@ -35,10 +35,14 @@ export async function POST(request: Request) {
     }
     const { message } = parsed.data
 
-    const { data: cards } = await supabase
+    const { data: cards, error: cardsError } = await supabase
       .from('loyalty_cards')
       .select('id, google_object_id')
       .eq('merchant_id', merchant.id)
+
+    if (cardsError) {
+      return NextResponse.json({ error: cardsError.message }, { status: 500 })
+    }
 
     if (!cards || cards.length === 0) {
       return NextResponse.json({ error: 'Aucun client à notifier pour le moment.' }, { status: 400 })

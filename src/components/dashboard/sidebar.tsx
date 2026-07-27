@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, Users, QrCode, Gift, Palette, Megaphone, Settings, CreditCard, LogOut } from 'lucide-react'
+import { LayoutDashboard, Users, QrCode, Gift, Palette, Megaphone, Zap, Settings, CreditCard, LogOut } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { href: '/dashboard/campaigns', label: 'Programme', icon: Gift },
   { href: '/dashboard/card-design', label: 'Design de la carte', icon: Palette },
   { href: '/dashboard/notifications', label: 'Notifications', icon: Megaphone },
+  { href: '/dashboard/playbooks', label: 'Automatisation ⚡', icon: Zap },
   { href: '/dashboard/settings', label: 'Paramètres', icon: Settings },
   { href: '/dashboard/billing', label: 'Facturation', icon: CreditCard },
 ]
