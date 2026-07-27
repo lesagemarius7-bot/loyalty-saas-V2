@@ -6,11 +6,11 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
   title: {
-    default: 'Loyalty — cartes de fidélité digitales',
+    default: 'Loyalty — le canal marketing dans le Wallet de vos clients',
     template: '%s · Loyalty',
   },
   description:
-    'Plateforme en marque blanche de cartes de fidélité pour restaurateurs et commerçants, compatible Apple Wallet et Google Wallet.',
+    'Loyalty est le canal marketing direct et intelligent en marque blanche, logé dans Apple Wallet et Google Wallet — carte de fidélité pour restaurateurs et commerçants, zéro application à télécharger.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
