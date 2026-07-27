@@ -14,7 +14,19 @@ export async function getCurrentMerchant(): Promise<{ merchant: Merchant; userId
 
   if (!user) redirect('/login')
 
-  const { data: merchant } = await supabase.from('merchants').select('*').eq('owner_id', user.id).single()
+  // .maybeSingle(), not .single() — .single() errors on zero rows, which is a
+  // real (if unexpected) state for a logged-in user whose merchant row wasn't
+  // created yet, not something that should look identical to a genuine query
+  // failure in the logs.
+  const { data: merchant, error } = await supabase
+    .from('merchants')
+    .select('*')
+    .eq('owner_id', user.id)
+    .maybeSingle()
+
+  if (error) {
+    console.error('[get-current-merchant] failed to fetch merchant', error)
+  }
 
   if (!merchant) redirect('/login')
 

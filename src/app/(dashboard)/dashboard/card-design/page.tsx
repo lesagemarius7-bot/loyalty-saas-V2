@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentMerchant } from '@/lib/get-current-merchant'
 import { LoyaltyCardCustomizer } from '@/components/dashboard/loyalty-card-customizer'
+import { DashboardErrorFallback } from '@/components/dashboard/dashboard-error-fallback'
 import type { LoyaltyProgram, Merchant } from '@/types'
 
 // Sensible defaults for a brand-new account that hasn't saved a card design yet
@@ -20,44 +21,66 @@ const DEFAULT_PROGRAM_FIELDS = {
 
 export default async function CardDesignPage() {
   const { merchant } = await getCurrentMerchant()
-  const supabase = await createClient()
 
-  const { data: program } = await supabase
-    .from('loyalty_programs')
-    .select('*')
-    .eq('merchant_id', merchant.id)
-    .eq('is_active', true)
-    .limit(1)
-    .maybeSingle()
+  try {
+    const supabase = await createClient()
 
-  // Guards against empty strings too, not just missing rows — a merchant row
-  // created before brand_color/card_text_color had defaults, or edited to '',
-  // should still produce a usable preview instead of an invisible white-on-white
-  // card.
-  const safeMerchant: Merchant = {
-    ...merchant,
-    business_name: merchant.business_name || 'Mon commerce',
-    brand_color: merchant.brand_color || '#1e293b',
-    card_text_color: merchant.card_text_color || '#ffffff',
-  }
+    const { data: program, error: programError } = await supabase
+      .from('loyalty_programs')
+      .select('*')
+      .eq('merchant_id', merchant.id)
+      .eq('is_active', true)
+      .limit(1)
+      .maybeSingle()
 
-  const effectiveProgram: LoyaltyProgram = program ?? {
-    id: '',
-    merchant_id: merchant.id,
-    created_at: merchant.created_at,
-    ...DEFAULT_PROGRAM_FIELDS,
-  }
+    if (programError) {
+      console.error('[dashboard/card-design] failed to fetch program', programError)
+    }
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Design de la carte</h1>
-        <p className="text-muted-foreground">
-          Personnalisez l’apparence de votre carte de fidélité et prévisualisez le rendu en temps réel.
-        </p>
+    // Guards against empty strings too, not just missing rows — a merchant row
+    // created before brand_color/card_text_color had defaults, or edited to '',
+    // should still produce a usable preview instead of an invisible white-on-white
+    // card.
+    const safeMerchant: Merchant = {
+      ...merchant,
+      business_name: merchant.business_name || 'Mon commerce',
+      brand_color: merchant.brand_color || '#1e293b',
+      card_text_color: merchant.card_text_color || '#ffffff',
+    }
+
+    const effectiveProgram: LoyaltyProgram = program ?? {
+      id: '',
+      merchant_id: merchant.id,
+      created_at: merchant.created_at,
+      ...DEFAULT_PROGRAM_FIELDS,
+    }
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold">Design de la carte</h1>
+          <p className="text-muted-foreground">
+            Personnalisez l’apparence de votre carte de fidélité et prévisualisez le rendu en temps réel.
+          </p>
+        </div>
+
+        {programError && (
+          <p className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            Impossible de charger la configuration existante ({programError.message}) — les réglages affichés
+            ci-dessous sont des valeurs par défaut, pas votre configuration réelle.
+          </p>
+        )}
+
+        <LoyaltyCardCustomizer merchant={safeMerchant} program={effectiveProgram} isNewProgram={!program} />
       </div>
-
-      <LoyaltyCardCustomizer merchant={safeMerchant} program={effectiveProgram} isNewProgram={!program} />
-    </div>
-  )
+    )
+  } catch (err) {
+    console.error('[dashboard/card-design] unexpected render error', err)
+    return (
+      <DashboardErrorFallback
+        title="Impossible de charger le design de la carte"
+        message="Une erreur inattendue est survenue pendant le chargement de cette page. Réessayez dans un instant."
+      />
+    )
+  }
 }
