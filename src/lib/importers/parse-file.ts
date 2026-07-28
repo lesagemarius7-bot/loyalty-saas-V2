@@ -1,6 +1,5 @@
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
-import { PDFParse } from 'pdf-parse'
 
 export interface ParsedTable {
   headers: string[]
@@ -66,6 +65,19 @@ const PHONE_PATTERN = /(?:\+33|0)[\s.-]?[1-9](?:[\s.-]?\d{2}){4}/
 // extraction — that would be pretending a level of structure this approach
 // can't honestly guarantee.
 async function parsePdf(buffer: Buffer): Promise<ParsedTable> {
+  // pdf-parse pulls in pdfjs-dist, which runs `new DOMMatrix()` at module
+  // top-level for its canvas rendering path — a browser API that doesn't
+  // exist in Vercel's Node.js runtime, so a static top-of-file import would
+  // crash every file type, not just PDFs. Dynamic import here defers that
+  // evaluation until an actual PDF is uploaded, and the stub below only
+  // needs to survive being constructed: we only ever call getText(), never
+  // the rendering methods that would need it to do real matrix math.
+  if (typeof globalThis.DOMMatrix === 'undefined') {
+    globalThis.DOMMatrix = class DOMMatrixStub {
+      constructor() {}
+    } as unknown as typeof DOMMatrix
+  }
+  const { PDFParse } = await import('pdf-parse')
   const parser = new PDFParse({ data: buffer })
   try {
     const result = await parser.getText()
