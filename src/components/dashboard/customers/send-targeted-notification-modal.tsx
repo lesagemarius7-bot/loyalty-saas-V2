@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Toast } from '@/components/dashboard/toast'
 import { useToast } from '@/hooks/use-toast'
 import { NotificationComposer, type PreviewCustomerData } from '@/components/dashboard/notifications/notification-composer'
+import { formatDeliverySummary } from '@/lib/notifications/format-delivery-summary'
 import type { NotificationTemplate } from '@/types'
 
 export interface TargetedCustomer {
@@ -64,7 +65,7 @@ export function SendTargetedNotificationModal({
         return
       }
 
-      showToast('success', `✅ Message envoyé avec succès à ${data.recipientCount} client(s) !`)
+      showToast('success', `✅ Envoyé à ${data.recipientCount} client(s) — ${formatDeliverySummary(data.apple, data.google)}`)
       setSent(true)
       router.refresh()
       setTimeout(() => onSent(), 900)

@@ -9,6 +9,7 @@ import { Toast } from '@/components/dashboard/toast'
 import { useToast } from '@/hooks/use-toast'
 import { NotificationComposer, type PreviewCustomerData } from '@/components/dashboard/notifications/notification-composer'
 import { SYSTEM_TEMPLATES } from '@/lib/notifications/variables'
+import { formatDeliverySummary } from '@/lib/notifications/format-delivery-summary'
 import type { NotificationTemplate } from '@/types'
 
 export function SendCampaignForm({
@@ -56,7 +57,7 @@ export function SendCampaignForm({
         return
       }
 
-      showToast('success', `✅ Message envoyé avec succès à ${data.recipientCount} client(s) !`)
+      showToast('success', `✅ Envoyé à ${data.recipientCount} client(s) — ${formatDeliverySummary(data.apple, data.google)}`)
       setSent(true)
       setTitle('')
       setMessage('')

@@ -43,6 +43,27 @@ export default async function NotificationsPage({
     if (templatesError) console.error('[dashboard/notifications] templates fetch failed', templatesError)
     if (sampleError) console.error('[dashboard/notifications] sample customer fetch failed', sampleError)
 
+    // Real per-campaign delivery stats — older campaigns (sent before this
+    // table existed) simply have no rows here, so they show no stats badge
+    // rather than a misleading "0 delivered".
+    const campaignIds = (campaigns ?? []).map((c) => c.id)
+    const { data: deliveryRows, error: deliveryRowsError } =
+      campaignIds.length > 0
+        ? await supabase.from('notification_deliveries').select('campaign_id, status').in('campaign_id', campaignIds)
+        : { data: [] as { campaign_id: string | null; status: string }[], error: null }
+
+    if (deliveryRowsError) console.error('[dashboard/notifications] delivery stats fetch failed', deliveryRowsError)
+
+    const statsByCampaign = new Map<string, { success: number; failed: number; uninstalled: number }>()
+    for (const row of deliveryRows ?? []) {
+      if (!row.campaign_id) continue
+      const entry = statsByCampaign.get(row.campaign_id) ?? { success: 0, failed: 0, uninstalled: 0 }
+      if (row.status === 'success') entry.success += 1
+      else if (row.status === 'uninstalled') entry.uninstalled += 1
+      else if (row.status === 'failed') entry.failed += 1
+      statsByCampaign.set(row.campaign_id, entry)
+    }
+
     const previewCustomer = sampleCustomer
       ? (() => {
           const [firstName, ...rest] = sampleCustomer.full_name.split(' ')
@@ -84,15 +105,25 @@ export default async function NotificationsPage({
           <CardContent>
             {campaigns && campaigns.length > 0 ? (
               <ul className="divide-y divide-border">
-                {campaigns.map((campaign) => (
-                  <li key={campaign.id} className="py-3 text-sm">
-                    <p>{campaign.message}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {new Date(campaign.created_at).toLocaleString('fr-FR')} · {campaign.recipient_count} client(s)
-                      {campaign.type === 'targeted' && campaign.target_summary && ` · ${campaign.target_summary}`}
-                    </p>
-                  </li>
-                ))}
+                {campaigns.map((campaign) => {
+                  const stats = statsByCampaign.get(campaign.id)
+                  return (
+                    <li key={campaign.id} className="py-3 text-sm">
+                      <p>{campaign.message}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {new Date(campaign.created_at).toLocaleString('fr-FR')} · {campaign.recipient_count} client(s)
+                        {campaign.type === 'targeted' && campaign.target_summary && ` · ${campaign.target_summary}`}
+                      </p>
+                      {stats && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          ✅ {stats.success} reçu(s)
+                          {stats.uninstalled > 0 && ` · ❌ ${stats.uninstalled} désinstallation(s)`}
+                          {stats.failed > 0 && ` · ⚠️ ${stats.failed} échec(s)`}
+                        </p>
+                      )}
+                    </li>
+                  )
+                })}
               </ul>
             ) : (
               <p className="text-sm text-muted-foreground">

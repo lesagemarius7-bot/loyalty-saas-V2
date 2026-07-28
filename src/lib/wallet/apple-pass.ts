@@ -187,6 +187,24 @@ export async function generateAppleLoyaltyPass(
   return pass.getAsBuffer()
 }
 
+// Thrown by pushAppleWalletUpdate on any non-200 APNs response. `uninstalled`
+// is true only for APNs' documented 410 Gone — the customer removed the pass
+// from Wallet, so the token is permanently dead — versus other failures
+// (network error, bad cert, transient 5xx) which are just `failed`. Callers
+// that don't care about the distinction can keep catching Error exactly as
+// before; this is a strict superset of the plain Error contract.
+export class ApplePushError extends Error {
+  status: number | null
+  uninstalled: boolean
+
+  constructor(message: string, status: number | null, uninstalled: boolean) {
+    super(message)
+    this.name = 'ApplePushError'
+    this.status = status
+    this.uninstalled = uninstalled
+  }
+}
+
 // Notifies a single registered device that its pass changed, per Apple's PassKit
 // web service spec — Apple then pulls the fresh pass from
 // /api/wallet/apple/v1/passes/... rather than receiving the data directly in the
@@ -200,22 +218,39 @@ export async function pushAppleWalletUpdate(pushToken: string): Promise<void> {
     passphrase: certs.signerKeyPassphrase,
   })
 
-  await new Promise<void>((resolve, reject) => {
-    const req = client.request({
-      ':method': 'POST',
-      ':path': `/3/device/${pushToken}`,
-      'apns-topic': requiredEnv('APPLE_PASS_TYPE_IDENTIFIER'),
-    })
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const req = client.request({
+        ':method': 'POST',
+        ':path': `/3/device/${pushToken}`,
+        'apns-topic': requiredEnv('APPLE_PASS_TYPE_IDENTIFIER'),
+      })
 
-    req.setEncoding('utf8')
-    req.write(JSON.stringify({}))
-    req.end()
+      let status: number | undefined
+      let responseBody = ''
 
-    req.on('response', (headers) => {
-      const status = headers[':status']
-      if (status === 200) resolve()
-      else reject(new Error(`APNs push failed with status ${status}`))
+      req.setEncoding('utf8')
+      req.write(JSON.stringify({}))
+      req.end()
+
+      req.on('response', (headers) => {
+        status = Number(headers[':status'])
+      })
+      req.on('data', (chunk) => {
+        responseBody += chunk
+      })
+      req.on('end', () => {
+        if (status === 200) {
+          resolve()
+        } else if (status === 410) {
+          reject(new ApplePushError('Device token no longer valid (410 Gone)', status, true))
+        } else {
+          reject(new ApplePushError(`APNs push failed with status ${status}: ${responseBody}`, status ?? null, false))
+        }
+      })
+      req.on('error', (err) => reject(new ApplePushError(err.message, null, false)))
     })
-    req.on('error', reject)
-  }).finally(() => client.close())
+  } finally {
+    client.close()
+  }
 }

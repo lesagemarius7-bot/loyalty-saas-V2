@@ -162,6 +162,18 @@ type NotificationTemplateRow = {
   updated_at: string
 }
 
+type NotificationDeliveryRow = {
+  id: string
+  campaign_id: string | null
+  merchant_id: string
+  customer_id: string
+  platform: 'apple' | 'google'
+  message_text: string
+  status: 'pending' | 'success' | 'failed' | 'uninstalled'
+  error_details: string | null
+  sent_at: string
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -365,6 +377,39 @@ export interface Database {
             columns: ['merchant_id']
             isOneToOne: false
             referencedRelation: 'merchants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      notification_deliveries: {
+        Row: NotificationDeliveryRow
+        Insert: Partial<NotificationDeliveryRow> & {
+          merchant_id: string
+          customer_id: string
+          platform: 'apple' | 'google'
+          message_text: string
+        }
+        Update: Partial<NotificationDeliveryRow>
+        Relationships: [
+          {
+            foreignKeyName: 'notification_deliveries_campaign_id_fkey'
+            columns: ['campaign_id']
+            isOneToOne: false
+            referencedRelation: 'notification_campaigns'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'notification_deliveries_merchant_id_fkey'
+            columns: ['merchant_id']
+            isOneToOne: false
+            referencedRelation: 'merchants'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'notification_deliveries_customer_id_fkey'
+            columns: ['customer_id']
+            isOneToOne: false
+            referencedRelation: 'customers'
             referencedColumns: ['id']
           },
         ]

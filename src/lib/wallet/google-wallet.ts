@@ -138,6 +138,22 @@ async function upsertResource(
   }
 }
 
+// Thrown by sendGoogleWalletMessage on any non-2xx response. A strict
+// superset of plain Error — existing callers that only catch-and-log keep
+// working unchanged. Google's Wallet Objects API has no "device uninstalled"
+// signal the way APNs' 410 does (a saved pass lives in the customer's Google
+// account, not tied to one device); a 404 here means the loyaltyObject
+// itself no longer exists, the closest equivalent.
+export class GoogleWalletDeliveryError extends Error {
+  status: number
+
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = 'GoogleWalletDeliveryError'
+    this.status = status
+  }
+}
+
 // Pushes a message onto an already-saved Google Wallet loyalty object — Google
 // surfaces it as a notification on the customer's device and as a message on
 // the card itself. The Apple equivalent needs a field changeMessage trick
@@ -154,7 +170,10 @@ export async function sendGoogleWalletMessage(cardId: string, header: string, bo
   })
 
   if (response.status >= 400) {
-    throw new Error(`Google Wallet addMessage error ${response.status}: ${JSON.stringify(response.data)}`)
+    throw new GoogleWalletDeliveryError(
+      `Google Wallet addMessage error ${response.status}: ${JSON.stringify(response.data)}`,
+      response.status
+    )
   }
 }
 

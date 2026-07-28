@@ -10,10 +10,11 @@ const bodySchema = z.object({
 
 // Broadcasts a one-off message to every one of the merchant's customers —
 // first brick of Wallet-based marketing notifications. Delivery +
-// {{variable}} interpolation is shared with the segmented route
-// (/api/notifications/send-bulk) via lib/notifications/deliver, so a
-// template built with {{first_name}} etc. behaves identically whether it's
-// sent to everyone here or to a filtered segment there.
+// {{variable}} interpolation + per-customer delivery logging is shared with
+// the segmented route (/api/notifications/send-bulk) via
+// lib/notifications/deliver, so a template built with {{first_name}} etc.
+// behaves identically whether it's sent to everyone here or to a filtered
+// segment there.
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
     const { data: cards, error: cardsError } = await supabase
       .from('loyalty_cards')
       .select(
-        'id, google_object_id, points_balance, customer:customers(full_name, customer_purchase_habits(favorite_category, last_purchased_category, last_transaction_at))'
+        'id, customer_id, google_object_id, points_balance, customer:customers(full_name, customer_purchase_habits(favorite_category, last_purchased_category, last_transaction_at))'
       )
       .eq('merchant_id', merchant.id)
 
@@ -54,6 +55,7 @@ export async function POST(request: Request) {
       const [firstName, ...rest] = (card.customer?.full_name ?? '').split(' ')
       return {
         id: card.id,
+        customerId: card.customer_id,
         googleObjectId: card.google_object_id,
         firstName: firstName ?? '',
         lastName: rest.join(' '),
@@ -64,11 +66,22 @@ export async function POST(request: Request) {
       }
     })
 
-    const result = await deliverToCards(supabase, deliveryCards, title, message, merchant.business_name)
-
-    await supabase
+    const { data: campaign, error: campaignInsertError } = await supabase
       .from('notification_campaigns')
-      .insert({ merchant_id: merchant.id, message, recipient_count: result.cardsUpdated, type: 'manual' })
+      .insert({ merchant_id: merchant.id, message, recipient_count: cards.length, type: 'manual' })
+      .select('id')
+      .single()
+
+    if (campaignInsertError) {
+      return NextResponse.json({ error: campaignInsertError.message }, { status: 500 })
+    }
+
+    const result = await deliverToCards(supabase, deliveryCards, title, message, merchant.business_name, {
+      merchantId: merchant.id,
+      campaignId: campaign.id,
+    })
+
+    await supabase.from('notification_campaigns').update({ recipient_count: result.cardsUpdated }).eq('id', campaign.id)
 
     return NextResponse.json({
       ok: true,
