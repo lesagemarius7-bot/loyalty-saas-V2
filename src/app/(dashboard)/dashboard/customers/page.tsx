@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentMerchant } from '@/lib/get-current-merchant'
 import { NewCustomerButton } from '@/components/dashboard/new-customer-button'
+import { ImportCustomersButton } from '@/components/dashboard/customers/import-customers-button'
 import { CustomersTable } from '@/components/dashboard/customers/customers-table'
 import { DashboardErrorFallback } from '@/components/dashboard/dashboard-error-fallback'
 
@@ -39,7 +40,10 @@ export default async function CustomersPage() {
             <h1 className="text-2xl font-semibold">Clients</h1>
             <p className="text-muted-foreground">{customers?.length ?? 0} client(s) inscrits.</p>
           </div>
-          <NewCustomerButton />
+          <div className="flex items-center gap-3">
+            <ImportCustomersButton apiKey={merchant.api_key} />
+            <NewCustomerButton />
+          </div>
         </div>
 
         <CustomersTable

@@ -29,6 +29,7 @@ type MerchantRow = {
   poc_duration_days: number
   subscription_plan: 'essentiel' | 'performance_ia'
   billing_status: 'poc_active' | 'active' | 'past_due' | 'canceled'
+  api_key: string
   created_at: string
   updated_at: string
 }
