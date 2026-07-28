@@ -151,6 +151,17 @@ type PosTransactionEventRow = {
   received_at: string
 }
 
+type NotificationTemplateRow = {
+  id: string
+  merchant_id: string
+  name: string
+  title_template: string
+  body_template: string
+  category_target: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -340,6 +351,20 @@ export interface Database {
             columns: ['customer_id']
             isOneToOne: false
             referencedRelation: 'customers'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      notification_templates: {
+        Row: NotificationTemplateRow
+        Insert: Partial<NotificationTemplateRow> & { merchant_id: string; name: string; title_template: string; body_template: string }
+        Update: Partial<NotificationTemplateRow>
+        Relationships: [
+          {
+            foreignKeyName: 'notification_templates_merchant_id_fkey'
+            columns: ['merchant_id']
+            isOneToOne: false
+            referencedRelation: 'merchants'
             referencedColumns: ['id']
           },
         ]

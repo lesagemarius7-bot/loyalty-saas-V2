@@ -6,10 +6,10 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { SendCardEmailButton } from '@/components/dashboard/send-card-email-button'
-import { SendTargetedNotificationModal } from '@/components/dashboard/customers/send-targeted-notification-modal'
+import { SendTargetedNotificationModal, type TargetedCustomer } from '@/components/dashboard/customers/send-targeted-notification-modal'
 import { cn } from '@/lib/utils'
 import { categoryEmoji } from '@/lib/constants/product-categories'
-import type { Customer, LoyaltyCard, CustomerPurchaseHabits } from '@/types'
+import type { Customer, LoyaltyCard, CustomerPurchaseHabits, Merchant, NotificationTemplate } from '@/types'
 
 export type CustomerRow = Customer & {
   loyalty_cards: Pick<LoyaltyCard, 'points_balance' | 'status'>[] | null
@@ -23,7 +23,30 @@ function displayCategory(row: CustomerRow): string | null {
   return row.customer_purchase_habits?.favorite_category ?? row.customer_purchase_habits?.last_purchased_category ?? null
 }
 
-export function CustomersTable({ customers, loadError }: { customers: CustomerRow[]; loadError: string | null }) {
+function toTargetedCustomer(row: CustomerRow): TargetedCustomer {
+  const [firstName, ...rest] = row.full_name.split(' ')
+  return {
+    id: row.id,
+    firstName: firstName || row.full_name,
+    lastName: rest.join(' '),
+    favoriteCategory: row.customer_purchase_habits?.favorite_category ?? null,
+    lastPurchasedCategory: row.customer_purchase_habits?.last_purchased_category ?? null,
+    lastTransactionAt: row.customer_purchase_habits?.last_transaction_at ?? null,
+    currentStamps: row.loyalty_cards?.[0]?.points_balance ?? 0,
+  }
+}
+
+export function CustomersTable({
+  customers,
+  loadError,
+  merchant,
+  templates,
+}: {
+  customers: CustomerRow[]
+  loadError: string | null
+  merchant: Merchant
+  templates: NotificationTemplate[]
+}) {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -244,7 +267,10 @@ export function CustomersTable({ customers, loadError }: { customers: CustomerRo
 
       {modalOpen && (
         <SendTargetedNotificationModal
-          customers={selectedCustomers.map((c) => ({ id: c.id, full_name: c.full_name }))}
+          merchantId={merchant.id}
+          businessName={merchant.business_name}
+          templates={templates}
+          customers={selectedCustomers.map(toTargetedCustomer)}
           targetSummary={targetSummary}
           onClose={() => setModalOpen(false)}
           onSent={() => {

@@ -10,16 +10,26 @@ export default async function CustomersPage() {
   try {
     const supabase = await createClient()
 
-    const { data: customers, error: customersError } = await supabase
-      .from('customers')
-      .select(
-        '*, loyalty_cards(points_balance, status), customer_purchase_habits(favorite_category, last_purchased_category, last_transaction_at)'
-      )
-      .eq('merchant_id', merchant.id)
-      .order('created_at', { ascending: false })
+    const [{ data: customers, error: customersError }, { data: templates, error: templatesError }] = await Promise.all([
+      supabase
+        .from('customers')
+        .select(
+          '*, loyalty_cards(points_balance, status), customer_purchase_habits(favorite_category, last_purchased_category, last_transaction_at)'
+        )
+        .eq('merchant_id', merchant.id)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('notification_templates')
+        .select('*')
+        .eq('merchant_id', merchant.id)
+        .order('created_at', { ascending: false }),
+    ])
 
     if (customersError) {
       console.error('[dashboard/customers] failed to fetch customers', customersError)
+    }
+    if (templatesError) {
+      console.error('[dashboard/customers] failed to fetch templates', templatesError)
     }
 
     return (
@@ -32,7 +42,12 @@ export default async function CustomersPage() {
           <NewCustomerButton />
         </div>
 
-        <CustomersTable customers={customers ?? []} loadError={customersError?.message ?? null} />
+        <CustomersTable
+          customers={customers ?? []}
+          loadError={customersError?.message ?? null}
+          merchant={merchant}
+          templates={templates ?? []}
+        />
       </div>
     )
   } catch (err) {

@@ -18,6 +18,8 @@ export default async function NotificationsPage({
     const [
       { count: recipientCount, error: recipientError },
       { data: campaigns, error: campaignsError },
+      { data: templates, error: templatesError },
+      { data: sampleCustomer, error: sampleError },
     ] = await Promise.all([
       supabase.from('loyalty_cards').select('*', { count: 'exact', head: true }).eq('merchant_id', merchant.id),
       supabase
@@ -26,10 +28,35 @@ export default async function NotificationsPage({
         .eq('merchant_id', merchant.id)
         .order('created_at', { ascending: false })
         .limit(10),
+      supabase.from('notification_templates').select('*').eq('merchant_id', merchant.id).order('created_at', { ascending: false }),
+      supabase
+        .from('customers')
+        .select('full_name, loyalty_cards(points_balance), customer_purchase_habits(favorite_category, last_purchased_category, last_transaction_at)')
+        .eq('merchant_id', merchant.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ])
 
     if (recipientError) console.error('[dashboard/notifications] recipient count failed', recipientError)
     if (campaignsError) console.error('[dashboard/notifications] campaigns fetch failed', campaignsError)
+    if (templatesError) console.error('[dashboard/notifications] templates fetch failed', templatesError)
+    if (sampleError) console.error('[dashboard/notifications] sample customer fetch failed', sampleError)
+
+    const previewCustomer = sampleCustomer
+      ? (() => {
+          const [firstName, ...rest] = sampleCustomer.full_name.split(' ')
+          return {
+            label: sampleCustomer.full_name,
+            firstName: firstName || sampleCustomer.full_name,
+            lastName: rest.join(' '),
+            favoriteCategory: sampleCustomer.customer_purchase_habits?.favorite_category ?? null,
+            lastPurchasedCategory: sampleCustomer.customer_purchase_habits?.last_purchased_category ?? null,
+            lastTransactionAt: sampleCustomer.customer_purchase_habits?.last_transaction_at ?? null,
+            currentStamps: sampleCustomer.loyalty_cards?.[0]?.points_balance ?? 0,
+          }
+        })()
+      : null
 
     return (
       <div className="max-w-lg space-y-6">
@@ -40,7 +67,14 @@ export default async function NotificationsPage({
           </p>
         </div>
 
-        <SendCampaignForm recipientCount={recipientCount ?? 0} initialTemplateId={template} />
+        <SendCampaignForm
+          recipientCount={recipientCount ?? 0}
+          merchantId={merchant.id}
+          businessName={merchant.business_name}
+          templates={templates ?? []}
+          previewCustomer={previewCustomer}
+          initialTemplateId={template}
+        />
 
         <Card>
           <CardHeader>

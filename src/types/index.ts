@@ -11,6 +11,7 @@ export type CardPreviewSession = Database['public']['Tables']['card_preview_sess
 export type NotificationCampaign = Database['public']['Tables']['notification_campaigns']['Row']
 export type CustomerPurchaseHabits = Database['public']['Tables']['customer_purchase_habits']['Row']
 export type PosTransactionEvent = Database['public']['Tables']['pos_transaction_events']['Row']
+export type NotificationTemplate = Database['public']['Tables']['notification_templates']['Row']
 
 export type LoyaltyCardWithRelations = LoyaltyCard & {
   customer: Customer
