@@ -1,12 +1,14 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { SendCardEmailButton } from '@/components/dashboard/send-card-email-button'
 import { SendTargetedNotificationModal, type TargetedCustomer } from '@/components/dashboard/customers/send-targeted-notification-modal'
+import { ConfirmDeleteCustomersModal, type DeleteTargetCustomer } from '@/components/dashboard/customers/confirm-delete-customers-modal'
 import { cn } from '@/lib/utils'
 import { categoryEmoji } from '@/lib/constants/product-categories'
 import type { Customer, LoyaltyCard, CustomerPurchaseHabits, Merchant, NotificationTemplate } from '@/types'
@@ -51,6 +53,7 @@ export function CustomersTable({
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [modalOpen, setModalOpen] = useState(false)
+  const [deleteTargets, setDeleteTargets] = useState<DeleteTargetCustomer[] | null>(null)
 
   // Built from real data present on this merchant's own customers — never a
   // hardcoded list of example categories, since Loyalty serves cafés,
@@ -220,8 +223,19 @@ export function CustomersTable({
                         {customer.loyalty_cards?.[0]?.status ?? 'active'}
                       </Badge>
                     </td>
-                    <td className="px-6 py-3 text-right">
-                      <SendCardEmailButton customerId={customer.id} hasEmail={Boolean(customer.email)} />
+                    <td className="px-6 py-3">
+                      <div className="flex items-center justify-end gap-2">
+                        <SendCardEmailButton customerId={customer.id} hasEmail={Boolean(customer.email)} />
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          aria-label={`Supprimer ${customer.full_name}`}
+                          onClick={() => setDeleteTargets([{ id: customer.id, fullName: customer.full_name }])}
+                          className="h-9 w-9 text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 )
@@ -257,6 +271,15 @@ export function CustomersTable({
               <Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())}>
                 Désélectionner tout
               </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() =>
+                  setDeleteTargets(selectedCustomers.map((c) => ({ id: c.id, fullName: c.full_name })))
+                }
+              >
+                🗑️ Supprimer ({selectedIds.size})
+              </Button>
               <Button size="sm" onClick={() => setModalOpen(true)}>
                 📢 Envoyer une notification ciblée à {selectedIds.size} client(s)
               </Button>
@@ -276,6 +299,22 @@ export function CustomersTable({
           onSent={() => {
             setModalOpen(false)
             setSelectedIds(new Set())
+          }}
+        />
+      )}
+
+      {deleteTargets && (
+        <ConfirmDeleteCustomersModal
+          customers={deleteTargets}
+          onClose={() => setDeleteTargets(null)}
+          onDeleted={() => {
+            const deletedIds = new Set(deleteTargets.map((c) => c.id))
+            setSelectedIds((prev) => {
+              const next = new Set(prev)
+              for (const id of deletedIds) next.delete(id)
+              return next
+            })
+            setDeleteTargets(null)
           }}
         />
       )}

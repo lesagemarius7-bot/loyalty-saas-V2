@@ -177,6 +177,27 @@ export async function sendGoogleWalletMessage(cardId: string, header: string, bo
   }
 }
 
+// Google Wallet objects can't be deleted, only expired — this is the correct
+// "invalidate" call when a customer is deleted, so an already-saved pass
+// stops showing as a valid loyalty card instead of silently going stale. A
+// 404 (object never existed, e.g. the customer never actually saved it)
+// is not an error here — the end state ("no active object") is already true.
+export async function expireGoogleLoyaltyObject(cardId: string): Promise<void> {
+  const client = await authClient().getClient()
+
+  const response = await client.request({
+    url: `${API_BASE}/loyaltyObject/${loyaltyObjectId(cardId)}`,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ state: 'EXPIRED' }),
+    validateStatus: () => true,
+  })
+
+  if (response.status >= 400 && response.status !== 404) {
+    throw new Error(`Google Wallet expire error ${response.status}: ${JSON.stringify(response.data)}`)
+  }
+}
+
 // Builds the "Add to Google Wallet" save link: a JWT self-signed with the service
 // account key (never sent to Google's auth server), referencing the object created
 // above. See https://developers.google.com/wallet/generic/web
