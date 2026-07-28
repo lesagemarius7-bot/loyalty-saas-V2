@@ -101,6 +101,8 @@ export function buildPreviewCard(
       back_terms: overrides.backTerms || '1 tampon par passage en caisse.',
       latitude: overrides.latitude ?? null,
       longitude: overrides.longitude ?? null,
+      auto_send_on_payment_enabled: false,
+      auto_send_channel: 'email',
       created_at: now,
     },
   }

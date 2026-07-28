@@ -1,15 +1,26 @@
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/server'
 import { getCurrentMerchant } from '@/lib/get-current-merchant'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { DashboardErrorFallback } from '@/components/dashboard/dashboard-error-fallback'
 import { MerchantCityForm } from '@/components/dashboard/merchant-city-form'
 import { MerchantAvgBasketForm } from '@/components/dashboard/merchant-avg-basket-form'
+import { AutoSendOnPaymentCard } from '@/components/dashboard/settings/auto-send-on-payment-card'
 
 export default async function SettingsPage() {
   const { merchant } = await getCurrentMerchant()
 
   try {
     const enrollmentUrl = `${process.env.NEXT_PUBLIC_APP_URL}/join/${merchant.slug}`
+
+    const supabase = await createClient()
+    const { data: program } = await supabase
+      .from('loyalty_programs')
+      .select('auto_send_on_payment_enabled, auto_send_channel')
+      .eq('merchant_id', merchant.id)
+      .eq('is_active', true)
+      .limit(1)
+      .maybeSingle()
 
     return (
       <div className="max-w-lg space-y-6">
@@ -57,6 +68,12 @@ export default async function SettingsPage() {
             <MerchantAvgBasketForm merchantId={merchant.id} initialValue={merchant.avg_basket_value} />
           </CardContent>
         </Card>
+
+        <AutoSendOnPaymentCard
+          apiKey={merchant.api_key}
+          initialEnabled={program?.auto_send_on_payment_enabled}
+          initialChannel={program?.auto_send_channel}
+        />
       </div>
     )
   } catch (err) {

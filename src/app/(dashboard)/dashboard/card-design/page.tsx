@@ -29,6 +29,8 @@ const DEFAULT_PROGRAM_FIELDS = {
   back_terms: '1 tampon par passage en caisse.',
   latitude: null,
   longitude: null,
+  auto_send_on_payment_enabled: false,
+  auto_send_channel: 'email',
 } as const
 
 export default async function CardDesignPage() {

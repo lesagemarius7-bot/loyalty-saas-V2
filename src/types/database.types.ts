@@ -66,6 +66,8 @@ type LoyaltyProgramRow = {
   back_terms: string
   latitude: number | null
   longitude: number | null
+  auto_send_on_payment_enabled: boolean
+  auto_send_channel: 'email' | 'link_only'
   created_at: string
 }
 

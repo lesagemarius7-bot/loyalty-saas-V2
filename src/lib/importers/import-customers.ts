@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
+import { applyPurchasedCategory } from '@/lib/customers/purchase-habits'
 
 type Client = SupabaseClient<Database>
 
@@ -125,7 +126,7 @@ export async function importCustomers(
       }
 
       if (row.lastPurchasedCategory) {
-        await applyImportedCategory(supabase, merchantId, existingId, row.lastPurchasedCategory)
+        await applyPurchasedCategory(supabase, merchantId, existingId, row.lastPurchasedCategory)
       }
 
       updatedCount += 1
@@ -156,33 +157,11 @@ export async function importCustomers(
     }
 
     if (row.lastPurchasedCategory) {
-      await applyImportedCategory(supabase, merchantId, customer.id, row.lastPurchasedCategory)
+      await applyPurchasedCategory(supabase, merchantId, customer.id, row.lastPurchasedCategory)
     }
 
     importedCount += 1
   }
 
   return { success: true, importedCount, updatedCount, skippedCount, errors }
-}
-
-// Purchase-category signal from an import is real data the merchant supplied
-// (their own export), not a guess — same honesty bar as
-// pos_transaction_events, just a different real source. Only ever touches
-// the category/date fields, never favorite_category (that stays derived from
-// real transaction history by recomputePurchaseHabits, not overwritten by a
-// one-off import).
-async function applyImportedCategory(
-  supabase: Client,
-  merchantId: string,
-  customerId: string,
-  category: string
-): Promise<void> {
-  const { error } = await supabase.from('customer_purchase_habits').upsert({
-    customer_id: customerId,
-    merchant_id: merchantId,
-    last_purchased_category: category,
-    last_transaction_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  })
-  if (error) console.error('[import-customers] failed to apply imported category', customerId, error)
 }
