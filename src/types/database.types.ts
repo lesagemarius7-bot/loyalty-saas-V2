@@ -125,7 +125,8 @@ type NotificationCampaignRow = {
   merchant_id: string
   message: string
   recipient_count: number
-  type: 'manual' | 'inactivity' | 'smart_engagement'
+  type: 'manual' | 'inactivity' | 'smart_engagement' | 'targeted'
+  target_summary: string | null
   created_at: string
 }
 
@@ -136,6 +137,8 @@ type CustomerPurchaseHabitsRow = {
   visit_frequency_days: number | null
   avg_points_per_visit: number | null
   favorite_category: string | null
+  last_purchased_category: string | null
+  last_transaction_at: string | null
   updated_at: string
 }
 

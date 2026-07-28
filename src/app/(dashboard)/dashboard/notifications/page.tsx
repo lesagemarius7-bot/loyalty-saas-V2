@@ -55,6 +55,7 @@ export default async function NotificationsPage({
                     <p>{campaign.message}</p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {new Date(campaign.created_at).toLocaleString('fr-FR')} · {campaign.recipient_count} client(s)
+                      {campaign.type === 'targeted' && campaign.target_summary && ` · ${campaign.target_summary}`}
                     </p>
                   </li>
                 ))}
