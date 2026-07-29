@@ -431,7 +431,7 @@ export function LoyaltyCardCustomizer({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-1">
                     <label className="text-sm font-medium">
                       {backgroundStyle === 'gradient' ? 'Couleur principale' : 'Couleur de fond'}
@@ -666,7 +666,7 @@ export function LoyaltyCardCustomizer({
                   100m autour de votre boutique.
                 </p>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-1">
                     <label className="text-sm font-medium">Latitude</label>
                     <Input

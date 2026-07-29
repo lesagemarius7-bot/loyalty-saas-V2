@@ -215,8 +215,8 @@ export function CustomersTable({
       )}
 
       <Card>
-        <CardContent className="p-0">
-          <table className="w-full text-sm">
+        <CardContent className="w-full max-w-full overflow-x-auto p-0">
+          <table className="w-full min-w-[720px] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-muted-foreground">
                 <th className="w-10 px-6 py-3">
@@ -378,8 +378,8 @@ export function CustomersTable({
       </Card>
 
       {selectedIds.size > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card px-6 py-4 shadow-2xl">
-          <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
+        <div className="fixed inset-x-0 bottom-0 z-40 max-h-[40vh] overflow-y-auto border-t border-border bg-card px-4 py-4 shadow-2xl sm:px-6">
+          <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm font-medium">
               {selectedIds.size} client(s) sélectionné(s)
               {!allFilteredSelected && filtered.length > selectedIds.size && (
@@ -388,7 +388,7 @@ export function CustomersTable({
                 </button>
               )}
             </p>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())}>
                 Désélectionner tout
               </Button>

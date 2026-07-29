@@ -147,27 +147,31 @@ export function DashboardSidebar({ businessName }: { businessName: string }) {
   return (
     <>
       {/* Mobile top bar — the desktop sidebar is fixed/hidden below md, so
-          this is the only way to reach navigation or sign out on a phone. */}
-      <div className="flex items-center justify-between border-b border-border p-4 md:hidden">
+          this is the only way to reach navigation or sign out on a phone.
+          Sticky (not just top-of-flow) so it stays reachable while the page
+          content below it scrolls. */}
+      <div className="sticky top-0 z-40 flex items-center justify-between border-b border-border bg-background/90 p-4 backdrop-blur-md md:hidden">
+        <div className="flex min-w-0 items-center gap-2.5">
+          {logo}
+          <span className="truncate text-base font-bold">{businessName}</span>
+        </div>
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
           aria-label="Ouvrir le menu"
-          className="text-muted-foreground hover:text-foreground"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border bg-secondary text-foreground hover:opacity-80"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-6 w-6" />
         </button>
-        <span className="truncate text-sm font-semibold">{businessName}</span>
-        {logo}
       </div>
 
       {mobileOpen && (
-        <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={() => setMobileOpen(false)} />
+        <div className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm md:hidden" onClick={() => setMobileOpen(false)} />
       )}
 
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-background p-4 transition-transform duration-200 md:static md:z-auto md:h-screen md:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 flex w-4/5 max-w-xs flex-col overflow-y-auto border-r border-border bg-background p-4 transition-transform duration-200 md:static md:z-auto md:h-screen md:w-64 md:max-w-none md:translate-x-0',
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
@@ -180,9 +184,9 @@ export function DashboardSidebar({ businessName }: { businessName: string }) {
             type="button"
             onClick={() => setMobileOpen(false)}
             aria-label="Fermer le menu"
-            className="text-muted-foreground hover:text-foreground md:hidden"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground md:hidden"
           >
-            <X className="h-5 w-5" />
+            <X className="h-6 w-6" />
           </button>
         </div>
 

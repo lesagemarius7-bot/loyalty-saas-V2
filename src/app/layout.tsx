@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 
@@ -11,6 +11,12 @@ export const metadata: Metadata = {
   },
   description:
     'Loyalty est le canal marketing direct et intelligent en marque blanche, logé dans Apple Wallet et Google Wallet — carte de fidélité pour restaurateurs et commerçants, zéro application à télécharger.',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

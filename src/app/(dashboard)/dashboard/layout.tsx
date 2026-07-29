@@ -5,9 +5,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const { merchant } = await getCurrentMerchant()
 
   return (
-    <div className="flex flex-col md:flex-row">
+    <div className="flex min-h-screen flex-col md:flex-row">
       <DashboardSidebar businessName={merchant.business_name} />
-      <main className="flex-1 overflow-y-auto p-4 md:p-8">{children}</main>
+      <main className="w-full max-w-full flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8">{children}</main>
     </div>
   )
 }

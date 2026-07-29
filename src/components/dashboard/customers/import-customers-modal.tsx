@@ -304,7 +304,7 @@ export function ImportCustomersModal({
                       {table.truncated && `, seules les ${table.rows.length} premières seront importées`}) aux champs
                       du CRM.
                     </p>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       {CRM_FIELDS.map((field) => (
                         <div key={field.key} className="space-y-1">
                           <label className="text-xs font-medium">{field.label}</label>
