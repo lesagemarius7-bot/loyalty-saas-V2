@@ -3,13 +3,14 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, Users, QrCode, Gift, Palette, Megaphone, Zap, Settings, CreditCard, LogOut } from 'lucide-react'
+import { LayoutDashboard, Users, QrCode, Gift, Palette, Megaphone, Zap, Settings, CreditCard, LogOut, Sparkles } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Vue d’ensemble', icon: LayoutDashboard },
   { href: '/dashboard/customers', label: 'Clients', icon: Users },
+  { href: '/dashboard/ai', label: 'Ask Loyalty AI', icon: Sparkles },
   { href: '/dashboard/scan', label: 'Scanner', icon: QrCode },
   { href: '/dashboard/campaigns', label: 'Programme', icon: Gift },
   { href: '/dashboard/card-design', label: 'Design de la carte', icon: Palette },
