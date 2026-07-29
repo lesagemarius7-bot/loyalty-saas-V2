@@ -1,29 +1,80 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type ComponentType } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, Users, QrCode, Gift, Palette, Megaphone, Zap, Settings, CreditCard, LogOut, Sparkles } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Users,
+  QrCode,
+  Gift,
+  Palette,
+  Megaphone,
+  Zap,
+  Settings,
+  CreditCard,
+  LogOut,
+  Sparkles,
+  Menu,
+  X,
+} from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
-const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Vue d’ensemble', icon: LayoutDashboard },
-  { href: '/dashboard/customers', label: 'Clients', icon: Users },
-  { href: '/dashboard/ai', label: 'Ask Loyalty AI', icon: Sparkles },
-  { href: '/dashboard/scan', label: 'Scanner', icon: QrCode },
-  { href: '/dashboard/campaigns', label: 'Programme', icon: Gift },
-  { href: '/dashboard/card-design', label: 'Design de la carte', icon: Palette },
-  { href: '/dashboard/notifications', label: 'Notifications', icon: Megaphone },
-  { href: '/dashboard/playbooks', label: 'Automatisation ⚡', icon: Zap },
-  { href: '/dashboard/settings', label: 'Paramètres', icon: Settings },
-  { href: '/dashboard/billing', label: 'Facturation', icon: CreditCard },
+interface NavItem {
+  label: string
+  href: string
+  icon: ComponentType<{ className?: string }>
+  badge?: string
+}
+
+interface NavSection {
+  title: string
+  items: NavItem[]
+}
+
+// Grouped by how a merchant actually uses each page day-to-day rather than
+// alphabetically or by build order — daily-counter tools first, CRM/growth
+// second, pass configuration third (touched rarely, once set up), account
+// admin last.
+const NAV_SECTIONS: NavSection[] = [
+  {
+    title: 'Pilotage',
+    items: [
+      { label: 'Vue d’ensemble', href: '/dashboard', icon: LayoutDashboard },
+      { label: 'Scanner', href: '/dashboard/scan', icon: QrCode },
+    ],
+  },
+  {
+    title: 'Marketing & clients',
+    items: [
+      { label: 'Clients', href: '/dashboard/customers', icon: Users },
+      { label: 'Ask Loyalty AI', href: '/dashboard/ai', icon: Sparkles, badge: 'AI' },
+      { label: 'Notifications', href: '/dashboard/notifications', icon: Megaphone },
+      { label: 'Automatisation ⚡', href: '/dashboard/playbooks', icon: Zap },
+    ],
+  },
+  {
+    title: 'Carte & programme',
+    items: [
+      { label: 'Programme', href: '/dashboard/campaigns', icon: Gift },
+      { label: 'Design de la carte', href: '/dashboard/card-design', icon: Palette },
+    ],
+  },
+  {
+    title: 'Paramètres',
+    items: [
+      { label: 'Facturation', href: '/dashboard/billing', icon: CreditCard },
+      { label: 'Paramètres', href: '/dashboard/settings', icon: Settings },
+    ],
+  },
 ]
 
 export function DashboardSidebar({ businessName }: { businessName: string }) {
   const pathname = usePathname()
   const router = useRouter()
   const [logoFailed, setLogoFailed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   async function handleSignOut() {
     const supabase = createClient()
@@ -32,52 +83,119 @@ export function DashboardSidebar({ businessName }: { businessName: string }) {
     router.refresh()
   }
 
+  const logo = logoFailed ? (
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-black text-primary-foreground">
+      L
+    </span>
+  ) : (
+    // Fixed local asset, no benefit from next/image's remote optimization
+    // pipeline — onError needs a plain <img> to swap to the letter-badge
+    // fallback above.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/images/logo-mark.png"
+      alt="Loyalty"
+      className="h-8 w-8 shrink-0 rounded-lg object-contain"
+      onError={() => setLogoFailed(true)}
+    />
+  )
+
+  const navContent = (
+    <nav className="flex-1 space-y-1 overflow-y-auto">
+      {NAV_SECTIONS.map((section, index) => (
+        <div key={section.title}>
+          <p
+            className={cn(
+              'mb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground',
+              index === 0 ? 'mt-0' : 'mt-4'
+            )}
+          >
+            {section.title}
+          </p>
+          {section.items.map((item) => {
+            const active = pathname === item.href
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                  active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-secondary'
+                )}
+              >
+                <item.icon className="h-4 w-4 shrink-0" />
+                <span className="flex-1">{item.label}</span>
+                {item.badge && (
+                  <span
+                    className={cn(
+                      'rounded-full px-1.5 py-0.5 text-[10px] font-bold',
+                      active ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-accent/10 text-accent'
+                    )}
+                  >
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            )
+          })}
+        </div>
+      ))}
+    </nav>
+  )
+
   return (
-    <aside className="flex h-screen w-64 flex-col border-r border-border p-4">
-      <div className="flex items-center gap-2.5 px-2 py-3">
-        {logoFailed ? (
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-black text-primary-foreground">
-            L
-          </span>
-        ) : (
-          // Fixed local asset, no benefit from next/image's remote
-          // optimization pipeline — onError needs a plain <img> to swap to
-          // the letter-badge fallback below.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src="/images/logo-mark.png"
-            alt="Loyalty"
-            className="h-8 w-8 shrink-0 rounded-lg object-contain"
-            onError={() => setLogoFailed(true)}
-          />
-        )}
+    <>
+      {/* Mobile top bar — the desktop sidebar is fixed/hidden below md, so
+          this is the only way to reach navigation or sign out on a phone. */}
+      <div className="flex items-center justify-between border-b border-border p-4 md:hidden">
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          aria-label="Ouvrir le menu"
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
         <span className="truncate text-sm font-semibold">{businessName}</span>
+        {logo}
       </div>
-      <nav className="flex-1 space-y-1">
-        {NAV_ITEMS.map((item) => {
-          const active = pathname === item.href
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-secondary'
-              )}
-            >
-              <item.icon className="h-4 w-4" />
-              {item.label}
-            </Link>
-          )
-        })}
-      </nav>
-      <button
-        onClick={handleSignOut}
-        className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary"
+
+      {mobileOpen && (
+        <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={() => setMobileOpen(false)} />
+      )}
+
+      <aside
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-background p-4 transition-transform duration-200 md:static md:z-auto md:h-screen md:translate-x-0',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        )}
       >
-        <LogOut className="h-4 w-4" />
-        Déconnexion
-      </button>
-    </aside>
+        <div className="flex items-center justify-between px-2 py-3 md:justify-start md:gap-2.5">
+          <div className="flex items-center gap-2.5">
+            {logo}
+            <span className="truncate text-sm font-semibold">{businessName}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Fermer le menu"
+            className="text-muted-foreground hover:text-foreground md:hidden"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {navContent}
+
+        <button
+          onClick={handleSignOut}
+          className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary"
+        >
+          <LogOut className="h-4 w-4" />
+          Déconnexion
+        </button>
+      </aside>
+    </>
   )
 }
