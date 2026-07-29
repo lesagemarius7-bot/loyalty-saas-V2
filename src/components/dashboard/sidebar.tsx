@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { LayoutDashboard, Users, QrCode, Gift, Palette, Megaphone, Zap, Settings, CreditCard, LogOut } from 'lucide-react'
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
 export function DashboardSidebar({ businessName }: { businessName: string }) {
   const pathname = usePathname()
   const router = useRouter()
+  const [logoFailed, setLogoFailed] = useState(false)
 
   async function handleSignOut() {
     const supabase = createClient()
@@ -31,7 +33,25 @@ export function DashboardSidebar({ businessName }: { businessName: string }) {
 
   return (
     <aside className="flex h-screen w-64 flex-col border-r border-border p-4">
-      <div className="px-2 py-3 text-sm font-semibold">{businessName}</div>
+      <div className="flex items-center gap-2.5 px-2 py-3">
+        {logoFailed ? (
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-black text-primary-foreground">
+            L
+          </span>
+        ) : (
+          // Fixed local asset, no benefit from next/image's remote
+          // optimization pipeline — onError needs a plain <img> to swap to
+          // the letter-badge fallback below.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src="/images/logo-mark.png"
+            alt="Loyalty"
+            className="h-8 w-8 shrink-0 rounded-lg object-contain"
+            onError={() => setLogoFailed(true)}
+          />
+        )}
+        <span className="truncate text-sm font-semibold">{businessName}</span>
+      </div>
       <nav className="flex-1 space-y-1">
         {NAV_ITEMS.map((item) => {
           const active = pathname === item.href
