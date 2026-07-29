@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import type { Html5QrcodeScanner } from 'html5-qrcode'
+import type { Html5Qrcode } from 'html5-qrcode'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,10 +16,14 @@ const READER_ELEMENT_ID = 'qr-reader'
 // made the camera scanner unusable on iPhone, forcing manual entry for
 // every single scan. html5-qrcode uses plain getUserMedia + in-JS decoding
 // (zxing under the hood), which works identically across iOS Safari,
-// Android Chrome, and installed-PWA contexts. Loaded dynamically (not a
-// top-level import) since it touches the DOM directly and has no meaningful
-// SSR path — this page is already 'use client', but the library itself
-// still shouldn't be pulled into the initial bundle eval before mount.
+// Android Chrome, and installed-PWA contexts.
+//
+// Deliberately the low-level Html5Qrcode class, not Html5QrcodeScanner —
+// that higher-level widget renders its own UI on top (a camera picker
+// dropdown, a "Scan an Image File" drag-and-drop tab) that got in the way
+// of what's actually wanted here: land on this page, camera opens
+// immediately, nothing to choose. Html5Qrcode.start() with an explicit
+// facingMode goes straight to the back camera with no extra chrome.
 export default function ScanPage() {
   const [state, setState] = useState<ScanState>('idle')
   const [lastResult, setLastResult] = useState<string | null>(null)
@@ -27,7 +31,7 @@ export default function ScanPage() {
   const [points, setPoints] = useState(10)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null)
+  const scannerRef = useRef<Html5Qrcode | null>(null)
 
   useEffect(() => {
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -38,66 +42,54 @@ export default function ScanPage() {
     let cancelled = false
 
     async function start() {
-      const { Html5Qrcode, Html5QrcodeScanner, Html5QrcodeSupportedFormats } = await import('html5-qrcode')
-
-      // getCameras() itself triggers the permission prompt — checking here,
-      // before constructing the full scanner widget, is what lets us show
-      // our own clear message instead of the library's generic one.
-      try {
-        const cameras = await Html5Qrcode.getCameras()
-        if (cancelled) return
-        if (!cameras || cameras.length === 0) {
-          setState('permission-denied')
-          return
-        }
-      } catch (err) {
-        console.error('[scan] camera permission/detection failed', err)
-        if (!cancelled) setState('permission-denied')
-        return
-      }
-
+      const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode')
       if (cancelled) return
 
-      const scanner = new Html5QrcodeScanner(
-        READER_ELEMENT_ID,
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1,
-          showTorchButtonIfSupported: true,
-          formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-        },
-        false
-      )
-
-      scanner.render(
-        (decodedText) => {
-          // The QR payload is normally the card's raw serial_number (no
-          // slashes), so this is a no-op passthrough for the real case —
-          // but also handles a QR that encodes a full URL (e.g. the Smart
-          // Link) by taking the last path segment instead.
-          const parts = decodedText.split('/')
-          const extracted = parts[parts.length - 1] || decodedText
-          setLastResult(extracted)
-        },
-        () => {
-          // Fires continuously while aiming at anything that isn't a valid
-          // QR code yet — expected noise, not a real error.
-        }
-      )
-
+      const scanner = new Html5Qrcode(READER_ELEMENT_ID, {
+        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+        verbose: false,
+      })
       scannerRef.current = scanner
-      if (!cancelled) setState('scanning')
+
+      try {
+        await scanner.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          (decodedText) => {
+            // The QR payload is normally the card's raw serial_number (no
+            // slashes), so this is a no-op passthrough for the real case —
+            // but also handles a QR that encodes a full URL (e.g. the Smart
+            // Link) by taking the last path segment instead.
+            const parts = decodedText.split('/')
+            const extracted = parts[parts.length - 1] || decodedText
+            setLastResult(extracted)
+          },
+          () => {
+            // Fires continuously while aiming at anything that isn't a valid
+            // QR code yet — expected noise, not a real error.
+          }
+        )
+        if (!cancelled) setState('scanning')
+      } catch (err) {
+        console.error('[scan] failed to start camera', err)
+        if (!cancelled) setState('permission-denied')
+      }
     }
 
     start()
 
     return () => {
       cancelled = true
-      scannerRef.current
-        ?.clear()
-        .catch((err) => console.error('[scan] failed to clear scanner', err))
+      const scanner = scannerRef.current
       scannerRef.current = null
+      if (scanner?.isScanning) {
+        scanner
+          .stop()
+          .then(() => scanner.clear())
+          .catch((err) => console.error('[scan] failed to stop scanner', err))
+      } else {
+        scanner?.clear()
+      }
     }
   }, [])
 
