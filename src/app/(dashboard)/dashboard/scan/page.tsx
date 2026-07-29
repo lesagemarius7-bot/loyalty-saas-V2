@@ -1,71 +1,103 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import type { Html5QrcodeScanner } from 'html5-qrcode'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { InstallPwaBanner } from '@/components/dashboard/scan/install-pwa-banner'
 
-type ScanState = 'idle' | 'scanning' | 'unsupported' | 'error'
+type ScanState = 'idle' | 'scanning' | 'unsupported' | 'permission-denied'
 
-// Uses the browser's native BarcodeDetector API instead of a JS decoding library —
-// zero extra bundle weight, and support is now broad enough (Chrome/Edge/Android,
-// Safari 17+) for a staff-facing tool where you control the devices in use. Falls
-// back to a manual serial-number entry field when it's unavailable.
+const READER_ELEMENT_ID = 'qr-reader'
+
+// html5-qrcode instead of window.BarcodeDetector — BarcodeDetector doesn't
+// exist on iOS Safari at all (any version, including inside a PWA), which
+// made the camera scanner unusable on iPhone, forcing manual entry for
+// every single scan. html5-qrcode uses plain getUserMedia + in-JS decoding
+// (zxing under the hood), which works identically across iOS Safari,
+// Android Chrome, and installed-PWA contexts. Loaded dynamically (not a
+// top-level import) since it touches the DOM directly and has no meaningful
+// SSR path — this page is already 'use client', but the library itself
+// still shouldn't be pulled into the initial bundle eval before mount.
 export default function ScanPage() {
-  const videoRef = useRef<HTMLVideoElement>(null)
   const [state, setState] = useState<ScanState>('idle')
   const [lastResult, setLastResult] = useState<string | null>(null)
   const [manualSerial, setManualSerial] = useState('')
   const [points, setPoints] = useState(10)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const scannerRef = useRef<Html5QrcodeScanner | null>(null)
 
   useEffect(() => {
-    if (!('BarcodeDetector' in window)) {
+    if (!navigator.mediaDevices?.getUserMedia) {
       setState('unsupported')
       return
     }
 
-    let stream: MediaStream | null = null
-    let frameId: number
+    let cancelled = false
 
     async function start() {
+      const { Html5Qrcode, Html5QrcodeScanner, Html5QrcodeSupportedFormats } = await import('html5-qrcode')
+
+      // getCameras() itself triggers the permission prompt — checking here,
+      // before constructing the full scanner widget, is what lets us show
+      // our own clear message instead of the library's generic one.
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream
-          await videoRef.current.play()
+        const cameras = await Html5Qrcode.getCameras()
+        if (cancelled) return
+        if (!cameras || cameras.length === 0) {
+          setState('permission-denied')
+          return
         }
-        setState('scanning')
-
-        // @ts-expect-error — BarcodeDetector isn't in TS's lib.dom.d.ts yet.
-        const detector = new window.BarcodeDetector({ formats: ['qr_code'] })
-
-        const tick = async () => {
-          if (videoRef.current && videoRef.current.readyState >= 2) {
-            try {
-              const codes = await detector.detect(videoRef.current)
-              if (codes[0]?.rawValue) {
-                setLastResult(codes[0].rawValue)
-              }
-            } catch {
-              // transient decode failure — just try again next frame
-            }
-          }
-          frameId = requestAnimationFrame(tick)
-        }
-        frameId = requestAnimationFrame(tick)
-      } catch {
-        setState('error')
+      } catch (err) {
+        console.error('[scan] camera permission/detection failed', err)
+        if (!cancelled) setState('permission-denied')
+        return
       }
+
+      if (cancelled) return
+
+      const scanner = new Html5QrcodeScanner(
+        READER_ELEMENT_ID,
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1,
+          showTorchButtonIfSupported: true,
+          formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+        },
+        false
+      )
+
+      scanner.render(
+        (decodedText) => {
+          // The QR payload is normally the card's raw serial_number (no
+          // slashes), so this is a no-op passthrough for the real case —
+          // but also handles a QR that encodes a full URL (e.g. the Smart
+          // Link) by taking the last path segment instead.
+          const parts = decodedText.split('/')
+          const extracted = parts[parts.length - 1] || decodedText
+          setLastResult(extracted)
+        },
+        () => {
+          // Fires continuously while aiming at anything that isn't a valid
+          // QR code yet — expected noise, not a real error.
+        }
+      )
+
+      scannerRef.current = scanner
+      if (!cancelled) setState('scanning')
     }
 
     start()
 
     return () => {
-      cancelAnimationFrame(frameId)
-      stream?.getTracks().forEach((track) => track.stop())
+      cancelled = true
+      scannerRef.current
+        ?.clear()
+        .catch((err) => console.error('[scan] failed to clear scanner', err))
+      scannerRef.current = null
     }
   }, [])
 
@@ -102,14 +134,15 @@ export default function ScanPage() {
         <CardHeader>
           <CardTitle>Caméra</CardTitle>
           <CardDescription>
-            {state === 'unsupported' && "Votre navigateur ne supporte pas le scan natif — utilisez la saisie manuelle ci-dessous."}
-            {state === 'error' && 'Accès caméra refusé ou indisponible.'}
+            {state === 'unsupported' && "Votre navigateur ne supporte pas l'accès caméra — utilisez la saisie manuelle ci-dessous."}
+            {state === 'permission-denied' && 'Autorisez l’accès à la caméra dans vos réglages Safari pour scanner les cartes.'}
             {state === 'scanning' && 'Visez le QR code affiché sur le téléphone du client.'}
+            {state === 'idle' && 'Initialisation de la caméra…'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {state !== 'unsupported' && (
-            <video ref={videoRef} className="aspect-video w-full rounded-md bg-black" muted playsInline />
+          {state !== 'unsupported' && state !== 'permission-denied' && (
+            <div id={READER_ELEMENT_ID} className="overflow-hidden rounded-2xl border border-border" />
           )}
 
           <div className="flex items-center gap-2">
