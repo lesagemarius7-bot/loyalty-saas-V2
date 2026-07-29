@@ -7,6 +7,15 @@ import { interpolateTemplate } from '@/lib/notifications/interpolate'
 
 type Client = SupabaseClient<Database>
 
+// Checked by every notification-sending route before it touches the DB —
+// with neither wallet configured, deliverToCards would still "succeed"
+// (loyalty_cards.last_message gets written, cardsUpdated counts up) while
+// never actually pushing to a single device. That silent no-op used to come
+// back as a 200 the merchant would read as "sent". Better to fail loudly.
+export function isAnyWalletChannelConfigured(): boolean {
+  return isAppleWalletConfigured() || isGoogleWalletConfigured()
+}
+
 export interface DeliveryCard {
   id: string
   customerId: string

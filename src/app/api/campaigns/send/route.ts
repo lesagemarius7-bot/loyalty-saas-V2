@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import { deliverToCards, type DeliveryCard } from '@/lib/notifications/deliver'
+import { deliverToCards, isAnyWalletChannelConfigured, type DeliveryCard } from '@/lib/notifications/deliver'
 
 const bodySchema = z.object({
   title: z.string().trim().max(60).optional(),
@@ -29,6 +29,13 @@ export async function POST(request: Request) {
     const { data: merchant } = await supabase.from('merchants').select('id, business_name').eq('owner_id', user.id).single()
     if (!merchant) {
       return NextResponse.json({ error: 'Merchant not found' }, { status: 404 })
+    }
+
+    if (!isAnyWalletChannelConfigured()) {
+      return NextResponse.json(
+        { error: 'Envoi impossible : certificats Apple/Google Wallet non configurés' },
+        { status: 400 }
+      )
     }
 
     const parsed = bodySchema.safeParse(await request.json())
