@@ -3,6 +3,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server'
 import { createGoogleWalletSaveLink, isGoogleWalletConfigured, upsertGoogleLoyaltyObject } from '@/lib/wallet/google-wallet'
 import { walletNotConfiguredResponse } from '@/lib/wallet/not-configured-response'
 import { getCardWithMerchant } from '@/lib/wallet/card-lookup'
+import { getActiveOffers } from '@/lib/wallet/offers'
 
 // Public route linked from the "Add to Google Wallet" button on /card/[cardId].
 // Same trust model as the Apple route: the card id is the capability, like the QR
@@ -23,8 +24,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Card not found' }, { status: 404 })
     }
     const { card, merchant } = lookup
+    const activeOffers = await getActiveOffers(card.customer_id, card.merchant_id)
 
-    await upsertGoogleLoyaltyObject(card, merchant)
+    await upsertGoogleLoyaltyObject(card, merchant, activeOffers)
 
     if (!card.google_object_id) {
       const supabase = createServiceRoleClient()

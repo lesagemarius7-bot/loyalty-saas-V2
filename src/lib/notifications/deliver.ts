@@ -73,13 +73,20 @@ export function classifyDeliveryStatus(outcomes: AttemptOutcome[]): 'success' | 
 // reporting purposes. A push that comes back 410 Gone (device token dead —
 // the customer removed the pass) deletes that registration so future sends
 // stop retrying it.
+export interface OfferMeta {
+  offerCode?: string
+  discount?: string
+  expiresAt?: string
+}
+
 export async function deliverToCards(
   supabase: Client,
   cards: DeliveryCard[],
   titleTemplate: string | undefined,
   bodyTemplate: string,
   businessName: string,
-  context: { merchantId: string; campaignId: string | null }
+  context: { merchantId: string; campaignId: string | null },
+  offer?: OfferMeta
 ): Promise<DeliveryResult> {
   const appleConfigured = isAppleWalletConfigured()
   const googleConfigured = isGoogleWalletConfigured()
@@ -114,6 +121,22 @@ export async function deliverToCards(
       continue
     }
     cardsUpdated += 1
+
+    // Persistent record independent of push success/failure — the point is
+    // "the merchant sent this to this customer", which is true whether or
+    // not any device happened to receive the lock-screen notification. This
+    // is what the pass backfield and /my-offers/[cardId] both read from
+    // later, so it can't be conditioned on delivery outcome.
+    const { error: inboxError } = await service.from('customer_notifications_inbox').insert({
+      customer_id: card.customerId,
+      merchant_id: context.merchantId,
+      title: personalizedTitle,
+      message: personalizedBody,
+      offer_code: offer?.offerCode ?? null,
+      discount: offer?.discount ?? null,
+      expires_at: offer?.expiresAt ?? null,
+    })
+    if (inboxError) console.error('[notifications/deliver] failed to log inbox entry', card.id, inboxError)
 
     const deliveryRows: {
       campaign_id: string | null

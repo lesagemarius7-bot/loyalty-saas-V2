@@ -13,6 +13,7 @@ export type CustomerPurchaseHabits = Database['public']['Tables']['customer_purc
 export type PosTransactionEvent = Database['public']['Tables']['pos_transaction_events']['Row']
 export type NotificationTemplate = Database['public']['Tables']['notification_templates']['Row']
 export type NotificationDelivery = Database['public']['Tables']['notification_deliveries']['Row']
+export type CustomerNotificationInbox = Database['public']['Tables']['customer_notifications_inbox']['Row']
 
 export type LoyaltyCardWithRelations = LoyaltyCard & {
   customer: Customer

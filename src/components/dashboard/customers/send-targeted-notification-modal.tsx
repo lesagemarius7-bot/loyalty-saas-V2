@@ -41,6 +41,9 @@ export function SendTargetedNotificationModal({
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [message, setMessage] = useState('')
+  const [offerCode, setOfferCode] = useState('')
+  const [discount, setDiscount] = useState('')
+  const [expiresAt, setExpiresAt] = useState('')
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const { toast, showToast, dismiss } = useToast()
@@ -56,6 +59,9 @@ export function SendTargetedNotificationModal({
           targetSummary,
           title: title.trim() || undefined,
           message,
+          offerCode: offerCode.trim() || undefined,
+          discount: discount.trim() || undefined,
+          expiresAt: expiresAt || undefined,
         }),
       })
       const data = await res.json()
@@ -132,6 +138,12 @@ export function SendTargetedNotificationModal({
                   onBodyChange={setMessage}
                   templates={templates}
                   previewCustomer={previewCustomer}
+                  offerCode={offerCode}
+                  onOfferCodeChange={setOfferCode}
+                  discount={discount}
+                  onDiscountChange={setDiscount}
+                  expiresAt={expiresAt}
+                  onExpiresAtChange={setExpiresAt}
                 />
 
                 <Button onClick={handleSend} disabled={!message.trim() || sending} className="w-full">

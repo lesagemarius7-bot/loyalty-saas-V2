@@ -3,6 +3,7 @@ import path from 'node:path'
 import http2 from 'node:http2'
 import { PKPass } from 'passkit-generator'
 import type { LoyaltyCardWithRelations, Merchant } from '@/types'
+import { formatOfferLine, type ActiveOffer } from '@/lib/wallet/offers'
 
 function requiredEnv(name: string) {
   const value = process.env[name]
@@ -93,9 +94,11 @@ async function fetchStripImage(bannerImageUrl: string): Promise<Buffer | null> {
 
 export async function generateAppleLoyaltyPass(
   card: LoyaltyCardWithRelations,
-  merchant: Merchant
+  merchant: Merchant,
+  activeOffers: ActiveOffer[] = []
 ): Promise<Buffer> {
   const buffers = loadModelBuffers()
+  const appUrl = requiredEnv('NEXT_PUBLIC_APP_URL')
 
   if (card.program.banner_image_url) {
     const stripImage = await fetchStripImage(card.program.banner_image_url)
@@ -114,7 +117,7 @@ export async function generateAppleLoyaltyPass(
     backgroundColor: hexToRgb(merchant.brand_color),
     foregroundColor: hexToRgb(merchant.card_text_color),
     labelColor: hexToRgb(merchant.card_text_color),
-    webServiceURL: `${requiredEnv('NEXT_PUBLIC_APP_URL')}/api/wallet/apple`,
+    webServiceURL: `${appUrl}/api/wallet/apple`,
     // TODO: replace with a dedicated per-card secret column before going live —
     // reusing the public serial number as the PassKit auth token means anyone who
     // can read a customer's QR code could also hit the device-registration
@@ -167,6 +170,23 @@ export async function generateAppleLoyaltyPass(
   if (program.back_terms) {
     pass.backFields.push({ key: 'terms', label: 'Conditions', value: program.back_terms })
   }
+
+  // Persists past the lock-screen push disappearing — a customer can open
+  // Wallet days later and still see what's currently active, one field with
+  // up to 3 lines rather than 3 separate sparse fields.
+  if (activeOffers.length > 0) {
+    pass.backFields.push({
+      key: 'activeOffers',
+      label: 'Offres en cours',
+      value: activeOffers.map(formatOfferLine).join('\n'),
+    })
+  }
+
+  pass.backFields.push({
+    key: 'offersHub',
+    label: 'Mon espace',
+    value: `${appUrl}/my-offers/${card.id}`,
+  })
 
   // Geofencing: iOS surfaces relevantText as a lock-screen notification when
   // the customer is within roughly 50-100m of these coordinates.

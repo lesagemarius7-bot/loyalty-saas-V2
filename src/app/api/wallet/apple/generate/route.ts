@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { generateAppleLoyaltyPass, isAppleWalletConfigured } from '@/lib/wallet/apple-pass'
 import { walletNotConfiguredResponse } from '@/lib/wallet/not-configured-response'
 import { getCardWithMerchant } from '@/lib/wallet/card-lookup'
+import { getActiveOffers } from '@/lib/wallet/offers'
 
 // Public route linked from the "Add to Apple Wallet" button on /card/[cardId] — the
 // visitor there is the customer themselves, not a logged-in dashboard user, so
@@ -24,8 +25,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Card not found' }, { status: 404 })
     }
     const { card, merchant } = lookup
+    const activeOffers = await getActiveOffers(card.customer_id, card.merchant_id)
 
-    const buffer = await generateAppleLoyaltyPass(card, merchant)
+    const buffer = await generateAppleLoyaltyPass(card, merchant, activeOffers)
 
     // Buffer's ArrayBufferLike generic doesn't line up with lib.dom's stricter
     // BodyInit signature under current @types/node — the runtime accepts a Buffer

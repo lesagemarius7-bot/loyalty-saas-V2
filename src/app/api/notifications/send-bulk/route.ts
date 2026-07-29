@@ -8,6 +8,14 @@ const bodySchema = z.object({
   targetSummary: z.string().max(200).optional(),
   title: z.string().trim().max(60).optional(),
   message: z.string().trim().min(1).max(150),
+  offerCode: z.string().trim().max(40).optional(),
+  discount: z.string().trim().max(60).optional(),
+  // Plain YYYY-MM-DD from a date input, not a full ISO datetime — converted
+  // to an end-of-day timestamp before it reaches deliverToCards.
+  expiresAt: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
 })
 
 // Segmented counterpart to /api/campaigns/send: scoped to an explicit list
@@ -42,7 +50,7 @@ export async function POST(request: Request) {
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
     }
-    const { customerIds, targetSummary, title, message } = parsed.data
+    const { customerIds, targetSummary, title, message, offerCode, discount, expiresAt } = parsed.data
 
     // Scoped to this merchant's own customers — the merchant_id filter is
     // what stops a crafted customerIds array from reaching someone else's
@@ -95,10 +103,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: campaignInsertError.message }, { status: 500 })
     }
 
-    const result = await deliverToCards(supabase, deliveryCards, title, message, merchant.business_name, {
-      merchantId: merchant.id,
-      campaignId: campaign.id,
-    })
+    const result = await deliverToCards(
+      supabase,
+      deliveryCards,
+      title,
+      message,
+      merchant.business_name,
+      { merchantId: merchant.id, campaignId: campaign.id },
+      { offerCode, discount, expiresAt: expiresAt ? new Date(`${expiresAt}T23:59:59`).toISOString() : undefined }
+    )
 
     await supabase.from('notification_campaigns').update({ recipient_count: result.cardsUpdated }).eq('id', campaign.id)
 

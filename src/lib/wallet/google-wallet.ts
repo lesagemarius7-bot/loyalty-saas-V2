@@ -1,9 +1,19 @@
 import crypto from 'node:crypto'
 import { GoogleAuth } from 'google-auth-library'
 import type { LoyaltyCardWithRelations, Merchant } from '@/types'
+import { formatOfferLine, type ActiveOffer } from '@/lib/wallet/offers'
 
 const WALLET_OBJECT_SCOPE = 'https://www.googleapis.com/auth/wallet_object.issuer'
 const API_BASE = 'https://walletobjects.googleapis.com/walletobjects/v1'
+
+// Soft fallback, not requiredEnv — unlike Apple's pass generation (which
+// already hard-requires NEXT_PUBLIC_APP_URL for webServiceURL), Google
+// Wallet object generation never needed this var before the offers hub
+// link; making it suddenly mandatory here would be a real regression on any
+// environment that has Google Wallet configured but not that specific var.
+function appUrl(): string {
+  return process.env.NEXT_PUBLIC_APP_URL || 'https://loyaltyapp.click'
+}
 
 function requiredEnv(name: string) {
   const value = process.env[name]
@@ -57,7 +67,11 @@ function loyaltyObjectId(cardId: string) {
 // Creates the class/object if missing, otherwise updates them with the current
 // points balance. Call this before issuing a save link, and again after
 // /api/points/add so an already-saved pass picks up the new balance.
-export async function upsertGoogleLoyaltyObject(card: LoyaltyCardWithRelations, merchant: Merchant) {
+export async function upsertGoogleLoyaltyObject(
+  card: LoyaltyCardWithRelations,
+  merchant: Merchant,
+  activeOffers: ActiveOffer[] = []
+) {
   const client = await authClient().getClient()
   const program = card.program
 
@@ -99,6 +113,11 @@ export async function upsertGoogleLoyaltyObject(card: LoyaltyCardWithRelations, 
 
   await upsertResource(client, `${API_BASE}/loyaltyClass`, loyaltyClassId(merchant), classPayload)
 
+  // Per-customer, unlike infoRows/linkUris above which live on the shared
+  // class and would otherwise show identically to every customer of this
+  // merchant — an active offer is specific to the one person who received
+  // it, so it (and the personalized hub link) has to be on the object, not
+  // the class.
   const objectPayload = {
     id: loyaltyObjectId(card.id),
     classId: loyaltyClassId(merchant),
@@ -106,6 +125,14 @@ export async function upsertGoogleLoyaltyObject(card: LoyaltyCardWithRelations, 
     accountName: card.customer.full_name,
     loyaltyPoints: { label: 'Points', balance: { int: card.points_balance } },
     barcode: { type: 'QR_CODE', value: card.serial_number },
+    ...(activeOffers.length > 0 && {
+      textModulesData: [
+        { id: 'activeOffers', header: 'Offres en cours', body: activeOffers.map(formatOfferLine).join('\n') },
+      ],
+    }),
+    linksModuleData: {
+      uris: [{ uri: `${appUrl()}/my-offers/${card.id}`, description: 'Voir mes offres', id: 'myOffers' }],
+    },
   }
 
   await upsertResource(client, `${API_BASE}/loyaltyObject`, loyaltyObjectId(card.id), objectPayload)

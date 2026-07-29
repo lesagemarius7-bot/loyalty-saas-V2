@@ -4,6 +4,7 @@ import { createGoogleWalletSaveLink, isGoogleWalletConfigured, upsertGoogleLoyal
 import { walletNotConfiguredResponse } from '@/lib/wallet/not-configured-response'
 import { getCardWithMerchant } from '@/lib/wallet/card-lookup'
 import { detectWalletPlatform } from '@/lib/wallet/user-agent'
+import { getActiveOffers } from '@/lib/wallet/offers'
 
 // Smart Link: a single URL — the one emailed to customers and printed on
 // receipts — with no intermediate landing page. The platform decides what
@@ -25,6 +26,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ card
       return NextResponse.json({ error: 'Card not found' }, { status: 404 })
     }
     const { card, merchant } = lookup
+    const activeOffers = await getActiveOffers(card.customer_id, card.merchant_id)
 
     const platform = detectWalletPlatform(request.headers.get('user-agent'))
 
@@ -32,7 +34,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ card
       if (!isGoogleWalletConfigured()) {
         return walletNotConfiguredResponse('google')
       }
-      await upsertGoogleLoyaltyObject(card, merchant)
+      await upsertGoogleLoyaltyObject(card, merchant, activeOffers)
       const saveUrl = createGoogleWalletSaveLink(card)
       return NextResponse.redirect(saveUrl, { status: 302 })
     }
@@ -42,7 +44,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ card
       return walletNotConfiguredResponse('apple')
     }
 
-    const buffer = await generateAppleLoyaltyPass(card, merchant)
+    const buffer = await generateAppleLoyaltyPass(card, merchant, activeOffers)
 
     // Buffer vs lib.dom's BodyInit — see the same cast in
     // api/wallet/apple/generate/route.ts.

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { generateAppleLoyaltyPass, isAppleWalletConfigured } from '@/lib/wallet/apple-pass'
+import { getActiveOffers } from '@/lib/wallet/offers'
 import type { LoyaltyCardWithRelations, Merchant } from '@/types'
 
 // "Get the latest version of a pass" — iOS calls this to fetch the updated
@@ -37,7 +38,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ seri
 
     if (!merchant) return new NextResponse(null, { status: 404 })
 
-    const buffer = await generateAppleLoyaltyPass(card, merchant)
+    const activeOffers = await getActiveOffers(card.customer_id, card.merchant_id)
+    const buffer = await generateAppleLoyaltyPass(card, merchant, activeOffers)
     await supabase.from('loyalty_cards').update({ apple_pass_updated_at: new Date().toISOString() }).eq('id', card.id)
 
     // Buffer vs lib.dom's BodyInit — see the same cast in

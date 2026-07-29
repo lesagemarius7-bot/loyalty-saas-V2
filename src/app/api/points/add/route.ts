@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { pushAppleWalletUpdate } from '@/lib/wallet/apple-pass'
 import { upsertGoogleLoyaltyObject } from '@/lib/wallet/google-wallet'
+import { getActiveOffers } from '@/lib/wallet/offers'
 import type { LoyaltyCardWithRelations, Merchant } from '@/types'
 
 const bodySchema = z
@@ -90,7 +91,8 @@ async function syncWalletPasses(
 ) {
   try {
     if (card.google_object_id) {
-      await upsertGoogleLoyaltyObject(card, merchant)
+      const activeOffers = await getActiveOffers(card.customer_id, card.merchant_id)
+      await upsertGoogleLoyaltyObject(card, merchant, activeOffers)
     }
 
     const { data: registrations } = await supabase

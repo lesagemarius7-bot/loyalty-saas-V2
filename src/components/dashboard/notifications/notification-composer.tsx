@@ -60,6 +60,12 @@ export function NotificationComposer({
   templates,
   previewCustomer,
   maxBodyLength = 150,
+  offerCode,
+  onOfferCodeChange,
+  discount,
+  onDiscountChange,
+  expiresAt,
+  onExpiresAtChange,
 }: {
   merchantId: string
   businessName: string
@@ -70,6 +76,17 @@ export function NotificationComposer({
   templates: NotificationTemplate[]
   previewCustomer: PreviewCustomerData | null
   maxBodyLength?: number
+  // Optional offer fields — when filled in, the send routes persist them to
+  // customer_notifications_inbox so the offer stays visible on the back of
+  // the Wallet pass and on /my-offers/[cardId] after the lock-screen push
+  // disappears. A bare message (all three left empty) is still recorded
+  // there too, just without discount/code/expiry semantics.
+  offerCode?: string
+  onOfferCodeChange?: (v: string) => void
+  discount?: string
+  onDiscountChange?: (v: string) => void
+  expiresAt?: string
+  onExpiresAtChange?: (v: string) => void
 }) {
   const titleRef = useRef<HTMLInputElement>(null)
   const bodyRef = useRef<HTMLTextAreaElement>(null)
@@ -79,6 +96,8 @@ export function NotificationComposer({
   const [saveModalOpen, setSaveModalOpen] = useState(false)
   const [templateName, setTemplateName] = useState('')
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [offerOpen, setOfferOpen] = useState(Boolean(offerCode || discount || expiresAt))
+  const showOfferFields = Boolean(onOfferCodeChange || onDiscountChange || onExpiresAtChange)
 
   function insertVariable(tag: string) {
     if (activeField === 'title') {
@@ -209,6 +228,49 @@ export function NotificationComposer({
           {body.length}/{maxBodyLength}
         </p>
       </div>
+
+      {showOfferFields && (
+        <div className="rounded-md border border-border">
+          <button
+            type="button"
+            onClick={() => setOfferOpen((v) => !v)}
+            className="flex w-full items-center justify-between px-3 py-2 text-sm font-medium"
+          >
+            🎁 Ajouter une offre (optionnel)
+            <span className="text-xs text-muted-foreground">{offerOpen ? 'Réduire' : 'Développer'}</span>
+          </button>
+          {offerOpen && (
+            <div className="grid grid-cols-1 gap-3 border-t border-border p-3 sm:grid-cols-3">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Réduction</label>
+                <Input
+                  value={discount ?? ''}
+                  onChange={(e) => onDiscountChange?.(e.target.value)}
+                  placeholder="Ex : -20% ou 1 café offert"
+                  maxLength={60}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Code (optionnel)</label>
+                <Input
+                  value={offerCode ?? ''}
+                  onChange={(e) => onOfferCodeChange?.(e.target.value)}
+                  placeholder="Ex : ETE2026"
+                  maxLength={40}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Expire le</label>
+                <Input type="date" value={expiresAt ?? ''} onChange={(e) => onExpiresAtChange?.(e.target.value)} />
+              </div>
+              <p className="col-span-full text-xs text-muted-foreground">
+                Reste visible au dos de la carte Wallet du client (et sur son espace « Mes offres ») même après la
+                disparition de la notification sur son écran verrouillé.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="space-y-1">
         <p className="text-xs text-muted-foreground">

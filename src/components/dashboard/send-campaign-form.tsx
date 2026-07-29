@@ -32,6 +32,9 @@ export function SendCampaignForm({
   const initial = SYSTEM_TEMPLATES.find((t) => t.id === initialTemplateId)
   const [title, setTitle] = useState(initial?.titleTemplate ?? '')
   const [message, setMessage] = useState(initial?.bodyTemplate ?? '')
+  const [offerCode, setOfferCode] = useState('')
+  const [discount, setDiscount] = useState('')
+  const [expiresAt, setExpiresAt] = useState('')
   const [confirming, setConfirming] = useState(false)
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
@@ -48,7 +51,13 @@ export function SendCampaignForm({
       const res = await fetch('/api/campaigns/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: title.trim() || undefined, message }),
+        body: JSON.stringify({
+          title: title.trim() || undefined,
+          message,
+          offerCode: offerCode.trim() || undefined,
+          discount: discount.trim() || undefined,
+          expiresAt: expiresAt || undefined,
+        }),
       })
       const data = await res.json()
 
@@ -61,6 +70,9 @@ export function SendCampaignForm({
       setSent(true)
       setTitle('')
       setMessage('')
+      setOfferCode('')
+      setDiscount('')
+      setExpiresAt('')
       router.refresh()
       setTimeout(() => setSent(false), 2000)
     } catch {
@@ -105,6 +117,21 @@ export function SendCampaignForm({
                 }}
                 templates={templates}
                 previewCustomer={previewCustomer}
+                offerCode={offerCode}
+                onOfferCodeChange={(v) => {
+                  setOfferCode(v)
+                  setConfirming(false)
+                }}
+                discount={discount}
+                onDiscountChange={(v) => {
+                  setDiscount(v)
+                  setConfirming(false)
+                }}
+                expiresAt={expiresAt}
+                onExpiresAtChange={(v) => {
+                  setExpiresAt(v)
+                  setConfirming(false)
+                }}
               />
 
               <Button

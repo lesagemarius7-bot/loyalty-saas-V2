@@ -177,6 +177,19 @@ type NotificationDeliveryRow = {
   sent_at: string
 }
 
+type CustomerNotificationsInboxRow = {
+  id: string
+  customer_id: string
+  merchant_id: string
+  title: string | null
+  message: string
+  offer_code: string | null
+  discount: string | null
+  expires_at: string | null
+  is_used: boolean
+  created_at: string
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -413,6 +426,27 @@ export interface Database {
             columns: ['customer_id']
             isOneToOne: false
             referencedRelation: 'customers'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      customer_notifications_inbox: {
+        Row: CustomerNotificationsInboxRow
+        Insert: Partial<CustomerNotificationsInboxRow> & { customer_id: string; merchant_id: string; message: string }
+        Update: Partial<CustomerNotificationsInboxRow>
+        Relationships: [
+          {
+            foreignKeyName: 'customer_notifications_inbox_customer_id_fkey'
+            columns: ['customer_id']
+            isOneToOne: false
+            referencedRelation: 'customers'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'customer_notifications_inbox_merchant_id_fkey'
+            columns: ['merchant_id']
+            isOneToOne: false
+            referencedRelation: 'merchants'
             referencedColumns: ['id']
           },
         ]

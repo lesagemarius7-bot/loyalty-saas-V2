@@ -6,6 +6,12 @@ import { deliverToCards, isAnyWalletChannelConfigured, type DeliveryCard } from 
 const bodySchema = z.object({
   title: z.string().trim().max(60).optional(),
   message: z.string().trim().min(1).max(150),
+  offerCode: z.string().trim().max(40).optional(),
+  discount: z.string().trim().max(60).optional(),
+  expiresAt: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
 })
 
 // Broadcasts a one-off message to every one of the merchant's customers —
@@ -42,7 +48,7 @@ export async function POST(request: Request) {
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
     }
-    const { title, message } = parsed.data
+    const { title, message, offerCode, discount, expiresAt } = parsed.data
 
     const { data: cards, error: cardsError } = await supabase
       .from('loyalty_cards')
@@ -83,10 +89,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: campaignInsertError.message }, { status: 500 })
     }
 
-    const result = await deliverToCards(supabase, deliveryCards, title, message, merchant.business_name, {
-      merchantId: merchant.id,
-      campaignId: campaign.id,
-    })
+    const result = await deliverToCards(
+      supabase,
+      deliveryCards,
+      title,
+      message,
+      merchant.business_name,
+      { merchantId: merchant.id, campaignId: campaign.id },
+      { offerCode, discount, expiresAt: expiresAt ? new Date(`${expiresAt}T23:59:59`).toISOString() : undefined }
+    )
 
     await supabase.from('notification_campaigns').update({ recipient_count: result.cardsUpdated }).eq('id', campaign.id)
 
