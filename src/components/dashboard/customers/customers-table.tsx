@@ -9,8 +9,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { SendCardEmailButton } from '@/components/dashboard/send-card-email-button'
 import { SendTargetedNotificationModal, type TargetedCustomer } from '@/components/dashboard/customers/send-targeted-notification-modal'
 import { ConfirmDeleteCustomersModal, type DeleteTargetCustomer } from '@/components/dashboard/customers/confirm-delete-customers-modal'
-import { cn } from '@/lib/utils'
 import { categoryEmoji } from '@/lib/constants/product-categories'
+import { formatPhoneNumber } from '@/lib/format-phone'
 import type { Customer, LoyaltyCard, CustomerPurchaseHabits, Merchant, NotificationTemplate } from '@/types'
 
 export type CustomerRow = Customer & {
@@ -21,8 +21,65 @@ export type CustomerRow = Customer & {
   > | null
 }
 
+type PointsRange = 'all' | '0-3' | '4-7' | '8+'
+// Only 'active'/'suspended' are real loyalty_cards.status values in the
+// database — 'new' and 'reward_ready' are computed below from points_balance
+// vs. the program's reward_threshold, not raw fields. Presented together in
+// one dropdown because they're mutually exclusive from the merchant's point
+// of view (a card is exactly one of these at a time), even though they come
+// from two different sources.
+type StatusFilter = 'all' | 'active' | 'suspended' | 'new' | 'reward_ready'
+
+interface ColumnFilters {
+  name: string
+  email: string
+  phone: string
+  category: string
+  pointsRange: PointsRange
+  status: StatusFilter
+}
+
+const DEFAULT_FILTERS: ColumnFilters = {
+  name: '',
+  email: '',
+  phone: '',
+  category: '',
+  pointsRange: 'all',
+  status: 'all',
+}
+
 function displayCategory(row: CustomerRow): string | null {
   return row.customer_purchase_habits?.favorite_category ?? row.customer_purchase_habits?.last_purchased_category ?? null
+}
+
+function computedStatus(row: CustomerRow, rewardThreshold: number | null): Exclude<StatusFilter, 'all'> {
+  const card = row.loyalty_cards?.[0]
+  if (card?.status === 'suspended') return 'suspended'
+  const points = card?.points_balance ?? 0
+  if (rewardThreshold !== null && rewardThreshold > 0 && points >= rewardThreshold) return 'reward_ready'
+  if (points === 0) return 'new'
+  return 'active'
+}
+
+const STATUS_LABELS: Record<Exclude<StatusFilter, 'all'>, string> = {
+  active: 'Actif',
+  suspended: 'Inactif',
+  new: 'Nouveau',
+  reward_ready: 'Récompense prête',
+}
+
+const STATUS_BADGE_VARIANT: Record<Exclude<StatusFilter, 'all'>, 'success' | 'secondary' | 'outline'> = {
+  active: 'success',
+  suspended: 'secondary',
+  new: 'outline',
+  reward_ready: 'success',
+}
+
+function matchesPointsRange(points: number, range: PointsRange): boolean {
+  if (range === 'all') return true
+  if (range === '0-3') return points >= 0 && points <= 3
+  if (range === '4-7') return points >= 4 && points <= 7
+  return points >= 8
 }
 
 function toTargetedCustomer(row: CustomerRow): TargetedCustomer {
@@ -38,22 +95,41 @@ function toTargetedCustomer(row: CustomerRow): TargetedCustomer {
   }
 }
 
+const FILTER_INPUT_CLASSES =
+  'h-8 w-full rounded-md border border-border bg-background px-2 text-xs font-normal placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary'
+
 export function CustomersTable({
   customers,
   loadError,
   merchant,
   templates,
+  rewardThreshold,
 }: {
   customers: CustomerRow[]
   loadError: string | null
   merchant: Merchant
   templates: NotificationTemplate[]
+  rewardThreshold: number | null
 }) {
-  const [search, setSearch] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState<string>('all')
+  const [filters, setFilters] = useState<ColumnFilters>(DEFAULT_FILTERS)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [modalOpen, setModalOpen] = useState(false)
   const [deleteTargets, setDeleteTargets] = useState<DeleteTargetCustomer[] | null>(null)
+
+  function updateFilter<K extends keyof ColumnFilters>(key: K, value: ColumnFilters[K]) {
+    setFilters((prev) => ({ ...prev, [key]: value }))
+  }
+
+  const hasActiveFilters = useMemo(
+    () =>
+      filters.name !== '' ||
+      filters.email !== '' ||
+      filters.phone !== '' ||
+      filters.category !== '' ||
+      filters.pointsRange !== 'all' ||
+      filters.status !== 'all',
+    [filters]
+  )
 
   // Built from real data present on this merchant's own customers — never a
   // hardcoded list of example categories, since Loyalty serves cafés,
@@ -71,17 +147,28 @@ export function CustomersTable({
   const hasUncategorized = useMemo(() => customers.some((c) => !displayCategory(c)), [customers])
 
   const filtered = useMemo(() => {
-    const query = search.trim().toLowerCase()
+    const name = filters.name.trim().toLowerCase()
+    const email = filters.email.trim().toLowerCase()
+    const phone = filters.phone.trim().replace(/[^\d+]/g, '')
+
     return customers.filter((c) => {
-      if (query) {
-        const haystack = `${c.full_name} ${c.email ?? ''} ${c.phone ?? ''}`.toLowerCase()
-        if (!haystack.includes(query)) return false
+      if (name && !c.full_name.toLowerCase().includes(name)) return false
+      if (email && !(c.email ?? '').toLowerCase().includes(email)) return false
+      if (phone) {
+        const customerPhoneDigits = (c.phone ?? '').replace(/[^\d+]/g, '')
+        if (!customerPhoneDigits.includes(phone)) return false
       }
-      if (categoryFilter === 'all') return true
-      if (categoryFilter === 'uncategorized') return !displayCategory(c)
-      return displayCategory(c) === categoryFilter
+
+      if (filters.category === 'uncategorized' && displayCategory(c)) return false
+      if (filters.category && filters.category !== 'uncategorized' && displayCategory(c) !== filters.category) return false
+
+      if (!matchesPointsRange(c.loyalty_cards?.[0]?.points_balance ?? 0, filters.pointsRange)) return false
+
+      if (filters.status !== 'all' && computedStatus(c, rewardThreshold) !== filters.status) return false
+
+      return true
     })
-  }, [customers, search, categoryFilter])
+  }, [customers, filters, rewardThreshold])
 
   const allFilteredSelected = filtered.length > 0 && filtered.every((c) => selectedIds.has(c.id))
 
@@ -113,62 +200,19 @@ export function CustomersTable({
   )
 
   const targetSummary =
-    categoryFilter !== 'all' && selectedIds.size === filtered.length && filtered.length > 0 && allFilteredSelected
-      ? `Catégorie : ${categoryFilter === 'uncategorized' ? 'Non catégorisé' : categoryFilter}`
+    filters.category && selectedIds.size === filtered.length && filtered.length > 0 && allFilteredSelected
+      ? `Catégorie : ${filters.category === 'uncategorized' ? 'Non catégorisé' : filters.category}`
       : `${selectedIds.size} client(s) sélectionné(s)`
 
   return (
     <div className="space-y-4 pb-20">
-      <div className="flex flex-wrap items-center gap-3">
-        <Input
-          placeholder="Rechercher par nom, e-mail ou téléphone…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="max-w-xs"
-        />
-
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setCategoryFilter('all')}
-            className={cn(
-              'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-              categoryFilter === 'all' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-secondary'
-            )}
-          >
-            Toutes les catégories
-          </button>
-          {availableCategories.map((category) => (
-            <button
-              key={category}
-              type="button"
-              onClick={() => setCategoryFilter(category)}
-              className={cn(
-                'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-                categoryFilter === category
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border hover:bg-secondary'
-              )}
-            >
-              {categoryEmoji(category)} {category}
-            </button>
-          ))}
-          {hasUncategorized && (
-            <button
-              type="button"
-              onClick={() => setCategoryFilter('uncategorized')}
-              className={cn(
-                'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-                categoryFilter === 'uncategorized'
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border hover:bg-secondary'
-              )}
-            >
-              Non catégorisé
-            </button>
-          )}
+      {hasActiveFilters && (
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" onClick={() => setFilters(DEFAULT_FILTERS)}>
+            🔄 Réinitialiser les filtres
+          </Button>
         </div>
-      </div>
+      )}
 
       <Card>
         <CardContent className="p-0">
@@ -184,17 +228,93 @@ export function CustomersTable({
                     className="h-4 w-4 rounded border-border"
                   />
                 </th>
-                <th className="px-6 py-3 font-medium">Nom</th>
-                <th className="px-6 py-3 font-medium">Contact</th>
-                <th className="px-6 py-3 font-medium">Catégorie</th>
-                <th className="px-6 py-3 font-medium">Points</th>
-                <th className="px-6 py-3 font-medium">Statut</th>
-                <th className="px-6 py-3 font-medium">Actions</th>
+                <th className="px-4 py-3 font-medium">Nom</th>
+                <th className="px-4 py-3 font-medium">E-mail</th>
+                <th className="px-4 py-3 font-medium">Téléphone</th>
+                <th className="px-4 py-3 font-medium">Catégorie</th>
+                <th className="px-4 py-3 font-medium">Points</th>
+                <th className="px-4 py-3 font-medium">Statut</th>
+                <th className="px-4 py-3 font-medium text-right">Actions</th>
+              </tr>
+              <tr className="border-b border-border bg-secondary/30">
+                <th className="px-6 py-2" />
+                <th className="px-4 py-2">
+                  <Input
+                    value={filters.name}
+                    onChange={(e) => updateFilter('name', e.target.value)}
+                    placeholder="Rechercher…"
+                    aria-label="Filtrer par nom"
+                    className={FILTER_INPUT_CLASSES}
+                  />
+                </th>
+                <th className="px-4 py-2">
+                  <Input
+                    value={filters.email}
+                    onChange={(e) => updateFilter('email', e.target.value)}
+                    placeholder="Rechercher…"
+                    aria-label="Filtrer par e-mail"
+                    className={FILTER_INPUT_CLASSES}
+                  />
+                </th>
+                <th className="px-4 py-2">
+                  <Input
+                    value={filters.phone}
+                    onChange={(e) => updateFilter('phone', e.target.value)}
+                    placeholder="Rechercher…"
+                    aria-label="Filtrer par téléphone"
+                    className={FILTER_INPUT_CLASSES}
+                  />
+                </th>
+                <th className="px-4 py-2">
+                  <select
+                    value={filters.category}
+                    onChange={(e) => updateFilter('category', e.target.value)}
+                    aria-label="Filtrer par catégorie"
+                    className={FILTER_INPUT_CLASSES}
+                  >
+                    <option value="">Toutes les catégories</option>
+                    {availableCategories.map((category) => (
+                      <option key={category} value={category}>
+                        {categoryEmoji(category)} {category}
+                      </option>
+                    ))}
+                    {hasUncategorized && <option value="uncategorized">Non catégorisé</option>}
+                  </select>
+                </th>
+                <th className="px-4 py-2">
+                  <select
+                    value={filters.pointsRange}
+                    onChange={(e) => updateFilter('pointsRange', e.target.value as PointsRange)}
+                    aria-label="Filtrer par nombre de points"
+                    className={FILTER_INPUT_CLASSES}
+                  >
+                    <option value="all">Tous</option>
+                    <option value="0-3">0-3 tampons</option>
+                    <option value="4-7">4-7 tampons</option>
+                    <option value="8+">8+ tampons</option>
+                  </select>
+                </th>
+                <th className="px-4 py-2">
+                  <select
+                    value={filters.status}
+                    onChange={(e) => updateFilter('status', e.target.value as StatusFilter)}
+                    aria-label="Filtrer par statut"
+                    className={FILTER_INPUT_CLASSES}
+                  >
+                    <option value="all">Tous</option>
+                    <option value="active">Actif</option>
+                    <option value="suspended">Inactif</option>
+                    <option value="new">Nouveau</option>
+                    <option value="reward_ready">Récompense prête</option>
+                  </select>
+                </th>
+                <th className="px-4 py-2" />
               </tr>
             </thead>
             <tbody>
               {filtered.map((customer) => {
                 const category = displayCategory(customer)
+                const status = computedStatus(customer, rewardThreshold)
                 return (
                   <tr key={customer.id} className="border-b border-border last:border-0">
                     <td className="px-6 py-3">
@@ -206,9 +326,12 @@ export function CustomersTable({
                         className="h-4 w-4 rounded border-border"
                       />
                     </td>
-                    <td className="px-6 py-3 font-medium">{customer.full_name}</td>
-                    <td className="px-6 py-3 text-muted-foreground">{customer.email ?? customer.phone ?? '—'}</td>
-                    <td className="px-6 py-3">
+                    <td className="px-4 py-3 font-medium">{customer.full_name}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{customer.email ?? '—'}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {customer.phone ? formatPhoneNumber(customer.phone) : '—'}
+                    </td>
+                    <td className="px-4 py-3">
                       {category ? (
                         <Badge variant="outline">
                           {categoryEmoji(category)} {category}
@@ -217,13 +340,11 @@ export function CustomersTable({
                         <Badge variant="secondary">Non catégorisé</Badge>
                       )}
                     </td>
-                    <td className="px-6 py-3">{customer.loyalty_cards?.[0]?.points_balance ?? 0}</td>
-                    <td className="px-6 py-3">
-                      <Badge variant={customer.loyalty_cards?.[0]?.status === 'active' ? 'success' : 'secondary'}>
-                        {customer.loyalty_cards?.[0]?.status ?? 'active'}
-                      </Badge>
+                    <td className="px-4 py-3">{customer.loyalty_cards?.[0]?.points_balance ?? 0}</td>
+                    <td className="px-4 py-3">
+                      <Badge variant={STATUS_BADGE_VARIANT[status]}>{STATUS_LABELS[status]}</Badge>
                     </td>
-                    <td className="px-6 py-3">
+                    <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-2">
                         <SendCardEmailButton customerId={customer.id} hasEmail={Boolean(customer.email)} />
                         <Button
@@ -242,7 +363,7 @@ export function CustomersTable({
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-muted-foreground">
+                  <td colSpan={8} className="px-6 py-8 text-center text-muted-foreground">
                     {loadError
                       ? `Impossible de charger les clients (${loadError}).`
                       : customers.length === 0

@@ -11,7 +11,11 @@ export default async function CustomersPage() {
   try {
     const supabase = await createClient()
 
-    const [{ data: customers, error: customersError }, { data: templates, error: templatesError }] = await Promise.all([
+    const [
+      { data: customers, error: customersError },
+      { data: templates, error: templatesError },
+      { data: program },
+    ] = await Promise.all([
       supabase
         .from('customers')
         .select(
@@ -24,6 +28,13 @@ export default async function CustomersPage() {
         .select('*')
         .eq('merchant_id', merchant.id)
         .order('created_at', { ascending: false }),
+      supabase
+        .from('loyalty_programs')
+        .select('reward_threshold')
+        .eq('merchant_id', merchant.id)
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle(),
     ])
 
     if (customersError) {
@@ -51,6 +62,7 @@ export default async function CustomersPage() {
           loadError={customersError?.message ?? null}
           merchant={merchant}
           templates={templates ?? []}
+          rewardThreshold={program?.reward_threshold ?? null}
         />
       </div>
     )
