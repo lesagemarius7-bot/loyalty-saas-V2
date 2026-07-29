@@ -43,12 +43,42 @@ export class ResendSendError extends Error {
   }
 }
 
-export async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }): Promise<void> {
+// EMAIL_FROM is "Display Name <address@domain>" — reply-to defaults to that
+// same address rather than a second hardcoded literal, so it can't drift out
+// of sync if EMAIL_FROM's domain or address ever changes.
+function replyToFromEmailFrom(): string | undefined {
+  const match = process.env.EMAIL_FROM?.match(/<([^>]+)>/)
+  return match?.[1]
+}
+
+// `text` is required, not optional-with-a-fallback: Gmail, Microsoft 365 and
+// Proofpoint all penalize HTML-only emails (no plain-text MIME part) as a
+// spam signal, so making every caller supply a real plain-text alternative
+// at the type level is the only way to guarantee it's never silently
+// skipped, for this or any future caller.
+export async function sendEmail({
+  to,
+  subject,
+  html,
+  text,
+}: {
+  to: string
+  subject: string
+  html: string
+  text: string
+}): Promise<void> {
   const response = await getClient().emails.send({
     from: process.env.EMAIL_FROM!,
     to,
     subject,
     html,
+    text,
+    replyTo: replyToFromEmailFrom(),
+    // Gives Gmail/Outlook threading a stable, unique reference per send
+    // instead of leaving it to guess from subject/body similarity — bulk
+    // sends with no reference id are more likely to get bucketed together
+    // and flagged as promotional.
+    headers: { 'X-Entity-Ref-ID': `loyalty-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` },
   })
 
   // Full response (both the success payload and any error) — the single place

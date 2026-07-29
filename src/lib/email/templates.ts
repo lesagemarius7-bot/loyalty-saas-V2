@@ -18,12 +18,15 @@ export function loyaltyCardReadyEmail({
   customerName,
   downloadUrl,
   brandColor,
-}: LoyaltyCardReadyEmailInput): { subject: string; html: string } {
+}: LoyaltyCardReadyEmailInput): { subject: string; html: string; text: string } {
   const safeMerchant = escapeHtml(merchantName)
   const safeCustomer = escapeHtml(customerName)
   const safeUrl = escapeHtml(downloadUrl)
 
-  const subject = `Votre carte de fidélité ${merchantName} est prête !`
+  // No ALL-CAPS, no "GRATUIT"/"OFFRE" — the words spam filters actually
+  // weight heavily — and a single emoji rather than several, which past a
+  // certain density reads as promotional to Gmail/Microsoft 365 classifiers.
+  const subject = `📲 Votre carte de fidélité ${merchantName}`
 
   const html = `<!doctype html>
 <html lang="fr">
@@ -74,5 +77,18 @@ export function loyaltyCardReadyEmail({
   </body>
 </html>`
 
-  return { subject, html }
+  // Required MIME alternative, not cosmetic — Gmail/Microsoft 365/Proofpoint
+  // all penalize HTML-only emails as a spam signal. Kept in the same order
+  // and covering the same content as the HTML version above (greeting,
+  // explanation, link, footer note) rather than a generic "view in browser"
+  // stub.
+  const text = `Bonjour ${customerName},
+
+Voici votre carte de fidélité digitale pour ${merchantName}. Ajoutez-la en un tap à votre téléphone — elle se met à jour automatiquement à chaque visite, sans rien à imprimer ni à ressaisir.
+
+Ajouter ma carte au Wallet : ${downloadUrl}
+
+Ce lien détecte automatiquement votre téléphone et ouvre Apple Wallet ou Google Wallet.`
+
+  return { subject, html, text }
 }

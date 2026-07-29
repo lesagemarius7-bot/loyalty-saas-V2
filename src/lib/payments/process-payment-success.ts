@@ -8,8 +8,9 @@ type Client = SupabaseClient<Database>
 
 // Same fallback as /api/customers/[customerId]/send-card — otherwise the
 // Smart Link would literally read "undefined/api/passes/download/..." on any
-// deployment where NEXT_PUBLIC_APP_URL isn't set.
-const FALLBACK_APP_URL = 'https://loyalty-saas-iota.vercel.app'
+// deployment where NEXT_PUBLIC_APP_URL isn't set. Same domain the email is
+// sent from, for the same reason as that route.
+const FALLBACK_APP_URL = 'https://loyaltyapp.click'
 
 export interface PaymentSuccessInput {
   customerEmail?: string
@@ -151,13 +152,13 @@ export async function processPaymentSuccess(supabase: Client, merchantId: string
     const { data: merchant } = await supabase.from('merchants').select('business_name, brand_color').eq('id', merchantId).single()
     if (merchant) {
       try {
-        const { subject, html } = loyaltyCardReadyEmail({
+        const { subject, html, text } = loyaltyCardReadyEmail({
           merchantName: merchant.business_name,
           customerName: fullName,
           downloadUrl: smartLink,
           brandColor: merchant.brand_color,
         })
-        await sendEmail({ to: email, subject, html })
+        await sendEmail({ to: email, subject, html, text })
         emailSent = true
       } catch (err) {
         console.error('[process-payment-success] failed to send enrollment email', customerId, err)

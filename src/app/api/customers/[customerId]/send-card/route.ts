@@ -3,10 +3,13 @@ import { createClient } from '@/lib/supabase/server'
 import { isEmailConfigured, ResendSendError, sendEmail } from '@/lib/email/resend'
 import { loyaltyCardReadyEmail } from '@/lib/email/templates'
 
-// Falls back to the known production URL if NEXT_PUBLIC_APP_URL isn't set on
-// the deployment — otherwise the download link in the email would literally
-// read "undefined/api/passes/download/...".
-const FALLBACK_APP_URL = 'https://loyalty-saas-iota.vercel.app'
+// Falls back to the verified custom domain if NEXT_PUBLIC_APP_URL isn't set
+// on the deployment — otherwise the download link in the email would
+// literally read "undefined/api/passes/download/...". Deliberately the same
+// domain the email is sent from (loyaltyapp.click), not the old .vercel.app
+// one — a link domain that doesn't match the sending domain is itself a
+// minor deliverability signal.
+const FALLBACK_APP_URL = 'https://loyaltyapp.click'
 
 // Dashboard-only action ("Envoyer par e-mail" on /dashboard/customers). Uses the
 // authenticated client (not service role) so RLS's is_merchant_member() check is
@@ -63,14 +66,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ cus
     }
 
     const downloadUrl = `${process.env.NEXT_PUBLIC_APP_URL || FALLBACK_APP_URL}/api/passes/download/${card.id}`
-    const { subject, html } = loyaltyCardReadyEmail({
+    const { subject, html, text } = loyaltyCardReadyEmail({
       merchantName: merchant.business_name,
       customerName: customer.full_name,
       downloadUrl,
       brandColor: merchant.brand_color,
     })
 
-    await sendEmail({ to: customer.email, subject, html })
+    await sendEmail({ to: customer.email, subject, html, text })
 
     return NextResponse.json({ ok: true })
   } catch (err) {
