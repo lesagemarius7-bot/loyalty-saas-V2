@@ -151,10 +151,10 @@ export function DashboardSidebar({ businessName }: { businessName: string }) {
           Sticky (not just top-of-flow) so it stays reachable while the page
           content below it scrolls. */}
       <div className="sticky top-0 z-40 flex items-center justify-between border-b border-border bg-background/90 p-4 backdrop-blur-md md:hidden">
-        <div className="flex min-w-0 items-center gap-2.5">
+        <Link href="/dashboard" onClick={() => setMobileOpen(false)} className="flex min-w-0 items-center gap-2.5">
           {logo}
           <span className="truncate text-base font-bold">{businessName}</span>
-        </div>
+        </Link>
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
@@ -176,10 +176,10 @@ export function DashboardSidebar({ businessName }: { businessName: string }) {
         )}
       >
         <div className="flex items-center justify-between px-2 py-3 md:justify-start md:gap-2.5">
-          <div className="flex items-center gap-2.5">
+          <Link href="/dashboard" onClick={() => setMobileOpen(false)} className="flex items-center gap-2.5">
             {logo}
             <span className="truncate text-sm font-semibold">{businessName}</span>
-          </div>
+          </Link>
           <button
             type="button"
             onClick={() => setMobileOpen(false)}
