@@ -3,20 +3,10 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
-
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '')
-}
 
 export default function SignupPage() {
   const router = useRouter()
@@ -25,40 +15,53 @@ export default function SignupPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false)
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
     setLoading(true)
     setError(null)
 
-    const supabase = createClient()
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password })
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ businessName, email, password }),
+      })
+      const data = await res.json()
 
-    if (signUpError || !signUpData.user) {
-      setError(signUpError?.message ?? 'Inscription impossible')
+      if (!res.ok) {
+        setError(data.error ?? 'Inscription impossible')
+        setLoading(false)
+        return
+      }
+
+      if (data.needsEmailConfirmation) {
+        setNeedsEmailConfirmation(true)
+        setLoading(false)
+        return
+      }
+
+      router.push('/dashboard')
+      router.refresh()
+    } catch {
+      setError('Impossible de contacter le serveur.')
       setLoading(false)
-      return
     }
+  }
 
-    // Requires enable_confirmations = false in supabase/config.toml (local dev) or
-    // an email-confirmation flow wired up before this runs in production — signUp
-    // doesn't return an active session if the account still needs confirming.
-    const { data: merchant, error: merchantError } = await supabase
-      .from('merchants')
-      .insert({ owner_id: signUpData.user.id, business_name: businessName, slug: slugify(businessName) })
-      .select('id')
-      .single()
-
-    if (merchantError || !merchant) {
-      setError(merchantError?.message ?? 'Compte créé mais impossible de créer le commerce')
-      setLoading(false)
-      return
-    }
-
-    await supabase.from('loyalty_programs').insert({ merchant_id: merchant.id })
-
-    router.push('/dashboard')
-    router.refresh()
+  if (needsEmailConfirmation) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Vérifiez votre boîte mail</CardTitle>
+          <CardDescription>
+            Votre compte a été créé — cliquez sur le lien reçu par e-mail pour confirmer votre adresse et accéder à
+            votre tableau de bord.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    )
   }
 
   return (
