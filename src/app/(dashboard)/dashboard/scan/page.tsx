@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { InstallPwaBanner } from '@/components/dashboard/scan/install-pwa-banner'
 
 type ScanState = 'idle' | 'scanning' | 'unsupported' | 'error'
 
@@ -94,6 +95,8 @@ export default function ScanPage() {
         <h1 className="text-2xl font-semibold">Scanner</h1>
         <p className="text-muted-foreground">Scannez la carte d’un client pour créditer des points.</p>
       </div>
+
+      <InstallPwaBanner />
 
       <Card className="max-w-lg">
         <CardHeader>
