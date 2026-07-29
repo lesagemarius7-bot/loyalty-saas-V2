@@ -150,11 +150,7 @@ export function DashboardSidebar({ businessName }: { businessName: string }) {
           this is the only way to reach navigation or sign out on a phone.
           Sticky (not just top-of-flow) so it stays reachable while the page
           content below it scrolls. */}
-      <div className="sticky top-0 z-40 flex items-center justify-between border-b border-border bg-background/90 p-4 backdrop-blur-md md:hidden">
-        <Link href="/dashboard" onClick={() => setMobileOpen(false)} className="flex min-w-0 items-center gap-2.5">
-          {logo}
-          <span className="truncate text-base font-bold">{businessName}</span>
-        </Link>
+      <div className="sticky top-0 z-40 flex items-center gap-3 border-b border-border bg-background/90 p-4 backdrop-blur-md md:hidden">
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
@@ -163,6 +159,10 @@ export function DashboardSidebar({ businessName }: { businessName: string }) {
         >
           <Menu className="h-6 w-6" />
         </button>
+        <Link href="/dashboard" onClick={() => setMobileOpen(false)} className="flex min-w-0 items-center gap-2.5">
+          {logo}
+          <span className="truncate text-base font-bold">{businessName}</span>
+        </Link>
       </div>
 
       {mobileOpen && (
