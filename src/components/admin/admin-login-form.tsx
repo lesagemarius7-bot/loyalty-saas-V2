@@ -62,7 +62,7 @@ export function AdminLoginForm() {
         className="border-slate-700 bg-slate-800 text-slate-100 placeholder:text-slate-500"
       />
       {error && <p className="text-sm text-red-400">{error}</p>}
-      <Button type="submit" className="w-full bg-indigo-500 hover:bg-indigo-400" disabled={loading}>
+      <Button type="submit" className="w-full bg-[#453ee8] hover:bg-[#706af1]" disabled={loading}>
         {loading ? 'Connexion…' : 'Se connecter'}
       </Button>
     </form>
