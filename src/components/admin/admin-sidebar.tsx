@@ -7,11 +7,20 @@ import { LayoutDashboard, Store, ScrollText, LogOut, ShieldCheck, LineChart } fr
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
-const NAV_ITEMS = [
-  { href: '/admin', label: 'Vue d’ensemble', icon: LayoutDashboard, exact: true },
-  { href: '/admin/merchants', label: 'Commerçants', icon: Store, exact: false },
-  { href: '/admin/finance', label: 'Finance', icon: LineChart, exact: false },
-  { href: '/admin/logs', label: 'Journal des envois', icon: ScrollText, exact: false },
+// Two groups, not one flat list: the first three are business-facing
+// dashboards (overview → drill into a merchant → money), the last is a
+// technical/support tool (Wallet send history + system error logs) — a
+// different kind of page, so it gets a visual break rather than blending
+// into the same list. Label is "Logs", not the old "Journal des envois" —
+// that name went stale the moment the page grew a technical-logs tab
+// alongside the Wallet-send journal (see (protected)/logs/page.tsx's h1).
+const NAV_GROUPS = [
+  [
+    { href: '/admin', label: 'Vue d’ensemble', icon: LayoutDashboard, exact: true },
+    { href: '/admin/merchants', label: 'Commerçants', icon: Store, exact: false },
+    { href: '/admin/finance', label: 'Finance', icon: LineChart, exact: false },
+  ],
+  [{ href: '/admin/logs', label: 'Logs', icon: ScrollText, exact: false }],
 ]
 
 // Deliberately its own dark look (hardcoded slate, not this app's semantic
@@ -62,23 +71,27 @@ export function AdminSidebar({ businessName }: { businessName: string }) {
         </div>
       </Link>
 
-      <nav className="flex-1 space-y-1 pt-4">
-        {NAV_ITEMS.map((item) => {
-          const active = item.exact ? pathname === item.href : pathname.startsWith(item.href)
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                active ? 'bg-[#453ee8] text-white' : 'text-slate-300 hover:bg-slate-800'
-              )}
-            >
-              <item.icon className="h-4 w-4 shrink-0" />
-              {item.label}
-            </Link>
-          )
-        })}
+      <nav className="flex-1 pt-4">
+        {NAV_GROUPS.map((group, i) => (
+          <div key={i} className={cn('space-y-1', i > 0 && 'mt-4 border-t border-slate-800 pt-4')}>
+            {group.map((item) => {
+              const active = item.exact ? pathname === item.href : pathname.startsWith(item.href)
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                    active ? 'bg-[#453ee8] text-white' : 'text-slate-300 hover:bg-slate-800'
+                  )}
+                >
+                  <item.icon className="h-4 w-4 shrink-0" />
+                  {item.label}
+                </Link>
+              )
+            })}
+          </div>
+        ))}
       </nav>
 
       <button
