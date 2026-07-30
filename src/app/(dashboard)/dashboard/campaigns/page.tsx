@@ -1,15 +1,12 @@
-import { createClient } from '@/lib/supabase/server'
 import { getCurrentMerchant } from '@/lib/get-current-merchant'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { CampaignForm } from '@/components/dashboard/campaign-form'
 import { DashboardErrorFallback } from '@/components/dashboard/dashboard-error-fallback'
 
 export default async function CampaignsPage() {
-  const { merchant } = await getCurrentMerchant()
+  const { merchant, dataClient: supabase } = await getCurrentMerchant()
 
   try {
-    const supabase = await createClient()
-
     // .maybeSingle(), not .single() — a merchant with no active program yet
     // (new account, or a signup-time insert that failed) is a valid state to
     // render, not an error to throw on.

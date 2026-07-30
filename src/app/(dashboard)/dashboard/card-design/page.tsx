@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
 import { getCurrentMerchant } from '@/lib/get-current-merchant'
 import { LoyaltyCardCustomizer } from '@/components/dashboard/loyalty-card-customizer'
 import { DashboardErrorFallback } from '@/components/dashboard/dashboard-error-fallback'
@@ -34,11 +33,9 @@ const DEFAULT_PROGRAM_FIELDS = {
 } as const
 
 export default async function CardDesignPage() {
-  const { merchant } = await getCurrentMerchant()
+  const { merchant, dataClient: supabase } = await getCurrentMerchant()
 
   try {
-    const supabase = await createClient()
-
     const { data: program, error: programError } = await supabase
       .from('loyalty_programs')
       .select('*')

@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
 import { getCurrentMerchant } from '@/lib/get-current-merchant'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { SendCampaignForm } from '@/components/dashboard/send-campaign-form'
@@ -9,12 +8,10 @@ export default async function NotificationsPage({
 }: {
   searchParams: Promise<{ template?: string }>
 }) {
-  const { merchant } = await getCurrentMerchant()
+  const { merchant, dataClient: supabase } = await getCurrentMerchant()
   const { template } = await searchParams
 
   try {
-    const supabase = await createClient()
-
     const [
       { count: recipientCount, error: recipientError },
       { data: campaigns, error: campaignsError },

@@ -193,3 +193,62 @@ Mettre à jour mon moyen de paiement : ${portalUrl}`
 
   return { subject, html, text }
 }
+
+export interface PocExpiryReminderInput {
+  businessName: string
+  daysRemaining: 7 | 3
+  billingUrl: string
+}
+
+// Sent by /api/cron/daily at exactly J-7 and J-3 before a POC trial ends —
+// dedup'd via merchants.poc_reminder_7d_sent_at / poc_reminder_3d_sent_at
+// (two columns, not one, since both milestones need independent
+// idempotency). Links to /dashboard/billing (choose-a-plan + Stripe
+// checkout), not a billing-portal payment-method-update link — a POC
+// merchant has no Stripe subscription yet, so there's no existing payment
+// method to "update".
+export function pocExpiryReminderEmail({ businessName, daysRemaining, billingUrl }: PocExpiryReminderInput): {
+  subject: string
+  html: string
+  text: string
+} {
+  const safeBusiness = escapeHtml(businessName)
+  const safeUrl = escapeHtml(billingUrl)
+
+  const subject = `⏳ Votre essai Loyalty se termine dans ${daysRemaining} jour${daysRemaining > 1 ? 's' : ''}`
+
+  const html = emailShell(
+    `<tr>
+      <td style="background-color:${BRAND_COLOR};padding:32px;text-align:center;">
+        <h1 style="margin:0;color:#ffffff;font-size:20px;line-height:1.3;">⏳ Votre essai se termine bientôt</h1>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:32px;">
+        <p style="margin:0 0 16px;color:#18181b;font-size:15px;line-height:1.5;">Bonjour ${safeBusiness},</p>
+        <p style="margin:0 0 24px;color:#3f3f46;font-size:15px;line-height:1.5;">
+          Il vous reste ${daysRemaining} jours d'essai gratuit sur Loyalty. Choisissez votre formule et renseignez
+          un moyen de paiement dès maintenant pour éviter toute coupure de service à la fin de votre essai.
+        </p>
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
+          <tr>
+            <td align="center" style="border-radius:9999px;background-color:${BRAND_COLOR};">
+              <a href="${safeUrl}" style="display:inline-block;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 32px;">
+                💳 Choisir ma formule
+              </a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>`,
+    subject
+  )
+
+  const text = `Bonjour ${businessName},
+
+Il vous reste ${daysRemaining} jours d'essai gratuit sur Loyalty. Choisissez votre formule et renseignez un moyen de paiement dès maintenant pour éviter toute coupure de service à la fin de votre essai.
+
+Choisir ma formule : ${billingUrl}`
+
+  return { subject, html, text }
+}

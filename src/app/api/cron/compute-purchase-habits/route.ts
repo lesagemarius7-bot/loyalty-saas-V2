@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { recomputePurchaseHabits } from '@/lib/analytics/purchase-habits'
+import { logSystemEvent } from '@/lib/logging/system-log'
 
 // Vercel Functions default to 10s on Hobby — a daily pass over every
 // merchant's full transaction history needs more room.
@@ -37,6 +38,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: true, merchantsProcessed: merchants?.length ?? 0, customersUpdated })
   } catch (err) {
     console.error('[cron/compute-purchase-habits] failed', err)
+    await logSystemEvent(createServiceRoleClient(), {
+      level: 'critical',
+      category: 'cron',
+      message: `/api/cron/compute-purchase-habits a échoué entièrement : ${err instanceof Error ? err.message : String(err)}`,
+    })
     return NextResponse.json(
       { error: 'Cron failed', details: err instanceof Error ? err.message : String(err) },
       { status: 500 }

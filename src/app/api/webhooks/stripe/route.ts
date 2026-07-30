@@ -2,12 +2,14 @@ import { NextResponse } from 'next/server'
 import type Stripe from 'stripe'
 import { stripe } from '@/lib/stripe/client'
 import { createServiceRoleClient } from '@/lib/supabase/server'
+import { logSystemEvent } from '@/lib/logging/system-log'
 
 // Stripe requires the raw request body to verify the webhook signature — do not
 // parse it with request.json() before this point, and do not add a body parser.
 export async function POST(request: Request) {
   const payload = await request.text()
   const signature = request.headers.get('stripe-signature')
+  const supabase = createServiceRoleClient()
 
   if (!signature) {
     return NextResponse.json({ error: 'Missing signature' }, { status: 400 })
@@ -17,10 +19,17 @@ export async function POST(request: Request) {
   try {
     event = stripe.webhooks.constructEvent(payload, signature, process.env.STRIPE_WEBHOOK_SECRET!)
   } catch (err) {
+    // A wrong/rotated STRIPE_WEBHOOK_SECRET silently breaks all billing
+    // sync until someone notices — 'error', not 'critical', since a single
+    // bad signature (replay, wrong secret briefly during rotation) isn't
+    // itself catastrophic, but a run of these deserves surfacing.
+    await logSystemEvent(supabase, {
+      level: 'error',
+      category: 'stripe',
+      message: `Signature Stripe invalide : ${(err as Error).message}`,
+    })
     return NextResponse.json({ error: `Invalid signature: ${(err as Error).message}` }, { status: 400 })
   }
-
-  const supabase = createServiceRoleClient()
 
   switch (event.type) {
     case 'checkout.session.completed': {
@@ -80,6 +89,13 @@ export async function POST(request: Request) {
       const merchantId = await merchantIdForInvoice(supabase, invoice)
       if (merchantId) {
         await supabase.from('merchants').update({ dunning_status: 'payment_failed' }).eq('id', merchantId)
+        await logSystemEvent(supabase, {
+          merchantId,
+          level: 'warning',
+          category: 'stripe',
+          message: 'Prélèvement Stripe échoué.',
+          metadata: { invoiceId: invoice.id, amountDue: invoice.amount_due },
+        })
       }
       break
     }

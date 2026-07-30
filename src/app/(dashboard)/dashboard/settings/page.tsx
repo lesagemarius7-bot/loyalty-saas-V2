@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
 import { getCurrentMerchant } from '@/lib/get-current-merchant'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { DashboardErrorFallback } from '@/components/dashboard/dashboard-error-fallback'
@@ -8,12 +7,11 @@ import { MerchantAvgBasketForm } from '@/components/dashboard/merchant-avg-baske
 import { AutoSendOnPaymentCard } from '@/components/dashboard/settings/auto-send-on-payment-card'
 
 export default async function SettingsPage() {
-  const { merchant } = await getCurrentMerchant()
+  const { merchant, dataClient: supabase } = await getCurrentMerchant()
 
   try {
     const enrollmentUrl = `${process.env.NEXT_PUBLIC_APP_URL}/join/${merchant.slug}`
 
-    const supabase = await createClient()
     const { data: program } = await supabase
       .from('loyalty_programs')
       .select('auto_send_on_payment_enabled, auto_send_channel')

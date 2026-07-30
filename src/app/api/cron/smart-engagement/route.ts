@@ -4,6 +4,7 @@ import { isAppleWalletConfigured, pushAppleWalletUpdate } from '@/lib/wallet/app
 import { isGoogleWalletConfigured, sendGoogleWalletMessage } from '@/lib/wallet/google-wallet'
 import { getWeatherForCity } from '@/lib/weather/openweather'
 import { arbitrate } from '@/lib/engagement/arbitrate'
+import { logSystemEvent } from '@/lib/logging/system-log'
 
 // Same headroom as the inactivity cron — a daily pass across every merchant's
 // card list, now with an extra weather fetch per merchant.
@@ -142,7 +143,16 @@ export async function GET(request: Request) {
 
           const results = await Promise.allSettled((registrations ?? []).map((r) => pushAppleWalletUpdate(r.push_token)))
           results.forEach((r) => {
-            if (r.status === 'rejected') console.error('[cron/smart-engagement] apple push failed', r.reason)
+            if (r.status === 'rejected') {
+              console.error('[cron/smart-engagement] apple push failed', r.reason)
+              void logSystemEvent(supabase, {
+                merchantId: program.merchant_id,
+                level: 'error',
+                category: 'apns',
+                message: 'Échec de mise à jour push Apple Wallet (smart engagement).',
+                metadata: { cardId: card.id, reason: String(r.reason) },
+              })
+            }
           })
         }
 
@@ -151,6 +161,13 @@ export async function GET(request: Request) {
             await sendGoogleWalletMessage(card.id, 'Loyalty', decision.message)
           } catch (err) {
             console.error('[cron/smart-engagement] google message failed', card.id, err)
+            await logSystemEvent(supabase, {
+              merchantId: program.merchant_id,
+              level: 'error',
+              category: 'google_wallet',
+              message: 'Échec de mise à jour Google Wallet (smart engagement).',
+              metadata: { cardId: card.id, reason: err instanceof Error ? err.message : String(err) },
+            })
           }
         }
 
@@ -174,6 +191,11 @@ export async function GET(request: Request) {
     })
   } catch (err) {
     console.error('[cron/smart-engagement] failed', err)
+    await logSystemEvent(createServiceRoleClient(), {
+      level: 'critical',
+      category: 'cron',
+      message: `/api/cron/smart-engagement a échoué entièrement : ${err instanceof Error ? err.message : String(err)}`,
+    })
     return NextResponse.json(
       { error: 'Cron failed', details: err instanceof Error ? err.message : String(err) },
       { status: 500 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { resolveMerchantId } from '@/lib/auth/impersonation'
 import { deleteCustomers } from '@/lib/customers/delete-customers'
 
 const bodySchema = z.object({
@@ -21,8 +22,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: merchant } = await supabase.from('merchants').select('id').eq('owner_id', user.id).single()
-    if (!merchant) {
+    const { merchantId, dataClient } = await resolveMerchantId(supabase, user.id)
+    if (!merchantId) {
       return NextResponse.json({ error: 'Merchant not found' }, { status: 404 })
     }
 
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
     }
 
-    const result = await deleteCustomers(supabase, merchant.id, parsed.data.customerIds)
+    const result = await deleteCustomers(dataClient, merchantId, parsed.data.customerIds)
 
     if (result.errors.length > 0) {
       return NextResponse.json({ error: result.errors[0] }, { status: 400 })

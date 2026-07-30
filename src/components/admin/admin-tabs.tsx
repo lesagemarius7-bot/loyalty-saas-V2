@@ -14,8 +14,8 @@ interface TabDef {
 // server-side fetch in the page, so there's no extra cost to keeping it in
 // the DOM, and switching tabs never re-triggers a fetch or shows a flash of
 // empty state.
-export function FinanceTabs({ tabs }: { tabs: TabDef[] }) {
-  const [active, setActive] = useState(tabs[0]?.id)
+export function AdminTabs({ tabs, defaultTabId }: { tabs: TabDef[]; defaultTabId?: string }) {
+  const [active, setActive] = useState(defaultTabId ?? tabs[0]?.id)
 
   return (
     <div>

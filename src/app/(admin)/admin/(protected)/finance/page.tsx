@@ -1,7 +1,7 @@
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { computeAdminFinance, computePocHealth, computeDunningData } from '@/lib/analytics/admin-finance'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { FinanceTabs } from '@/components/admin/finance-tabs'
+import { AdminTabs } from '@/components/admin/admin-tabs'
 import { DunningTable } from '@/components/admin/dunning-table'
 import { PocHealthTable } from '@/components/admin/poc-health-table'
 import { FinanceExportForm } from '@/components/admin/finance-export-form'
@@ -33,7 +33,7 @@ export default async function AdminFinancePage() {
         </p>
       </div>
 
-      <FinanceTabs
+      <AdminTabs
         tabs={[
           {
             id: 'overview',

@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast'
 type Channel = 'email' | 'link_only'
 
 export function AutoSendOnPaymentCard({
-  apiKey,
+  apiKey: initialApiKey,
   initialEnabled,
   initialChannel,
 }: {
@@ -20,12 +20,36 @@ export function AutoSendOnPaymentCard({
   initialEnabled: boolean | null | undefined
   initialChannel: Channel | null | undefined
 }) {
+  const [apiKey, setApiKey] = useState(initialApiKey)
   const [enabled, setEnabled] = useState(initialEnabled ?? false)
   const [channel, setChannel] = useState<Channel>(initialChannel ?? 'email')
   const [toggling, setToggling] = useState(false)
   const [savingChannel, setSavingChannel] = useState(false)
+  const [regenerating, setRegenerating] = useState(false)
   const [copied, setCopied] = useState<'key' | 'url' | null>(null)
   const { toast, showToast, dismiss } = useToast()
+
+  async function handleRegenerate() {
+    if (
+      !window.confirm(
+        "Régénérer la clé API invalide immédiatement l'ancienne — toute caisse/terminal déjà connecté cessera de fonctionner jusqu'à ce que vous le reconfiguriez avec la nouvelle clé. Continuer ?"
+      )
+    ) {
+      return
+    }
+    setRegenerating(true)
+    try {
+      const res = await fetch('/api/dashboard/api-key/regenerate', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Erreur inconnue')
+      setApiKey(data.apiKey)
+      showToast('success', 'Nouvelle clé API générée.')
+    } catch (err) {
+      showToast('error', err instanceof Error ? err.message : 'Échec de la régénération.')
+    } finally {
+      setRegenerating(false)
+    }
+  }
 
   async function save(overrides: { enabled?: boolean; channel?: Channel } = {}) {
     const res = await fetch('/api/program/auto-send-on-payment', {
@@ -157,6 +181,9 @@ export function AutoSendOnPaymentCard({
                 <code className="flex-1 truncate rounded-md bg-secondary px-3 py-2 font-mono text-xs">{apiKey}</code>
                 <Button type="button" variant="outline" size="sm" onClick={() => copyToClipboard(apiKey, 'key')}>
                   {copied === 'key' ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                </Button>
+                <Button type="button" variant="outline" size="sm" disabled={regenerating} onClick={handleRegenerate}>
+                  {regenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : '🔄 Régénérer'}
                 </Button>
               </div>
             </div>

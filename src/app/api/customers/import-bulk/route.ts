@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { resolveMerchantId } from '@/lib/auth/impersonation'
 import { importCustomers } from '@/lib/importers/import-customers'
 
 const customerSchema = z.object({
@@ -32,8 +33,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: merchant } = await supabase.from('merchants').select('id').eq('owner_id', user.id).single()
-    if (!merchant) {
+    const { merchantId, dataClient } = await resolveMerchantId(supabase, user.id)
+    if (!merchantId) {
       return NextResponse.json({ error: 'Merchant not found' }, { status: 404 })
     }
 
@@ -43,8 +44,8 @@ export async function POST(request: Request) {
     }
 
     const report = await importCustomers(
-      supabase,
-      merchant.id,
+      dataClient,
+      merchantId,
       parsed.data.customers.map((c) => ({
         firstName: c.first_name,
         lastName: c.last_name,

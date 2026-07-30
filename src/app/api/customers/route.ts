@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { resolveMerchantId } from '@/lib/auth/impersonation'
 
 const bodySchema = z.object({
   firstName: z.string().min(1),
@@ -26,8 +27,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: merchant } = await supabase.from('merchants').select('id').eq('owner_id', user.id).single()
-    if (!merchant) {
+    const { merchantId, dataClient } = await resolveMerchantId(supabase, user.id)
+    if (!merchantId) {
       return NextResponse.json({ error: 'Merchant not found' }, { status: 404 })
     }
 
@@ -39,10 +40,10 @@ export async function POST(request: Request) {
     const { firstName, lastName, email, phone } = parsed.data
     const fullName = [firstName, lastName].filter(Boolean).join(' ').trim()
 
-    const { data: program } = await supabase
+    const { data: program } = await dataClient
       .from('loyalty_programs')
       .select('id')
-      .eq('merchant_id', merchant.id)
+      .eq('merchant_id', merchantId)
       .eq('is_active', true)
       .limit(1)
       .maybeSingle()
@@ -54,9 +55,9 @@ export async function POST(request: Request) {
       )
     }
 
-    const { data: customer, error: customerError } = await supabase
+    const { data: customer, error: customerError } = await dataClient
       .from('customers')
-      .insert({ merchant_id: merchant.id, full_name: fullName, email, phone: phone || null })
+      .insert({ merchant_id: merchantId, full_name: fullName, email, phone: phone || null })
       .select('id')
       .single()
 
@@ -68,9 +69,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: message }, { status: 400 })
     }
 
-    const { data: card, error: cardError } = await supabase
+    const { data: card, error: cardError } = await dataClient
       .from('loyalty_cards')
-      .insert({ merchant_id: merchant.id, customer_id: customer.id, program_id: program.id })
+      .insert({ merchant_id: merchantId, customer_id: customer.id, program_id: program.id })
       .select('id')
       .single()
 

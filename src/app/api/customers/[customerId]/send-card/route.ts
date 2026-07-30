@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { resolveMerchantId } from '@/lib/auth/impersonation'
 import { isEmailConfigured, ResendSendError, sendEmail } from '@/lib/email/resend'
 import { loyaltyCardReadyEmail } from '@/lib/email/templates'
 
@@ -11,10 +12,15 @@ import { loyaltyCardReadyEmail } from '@/lib/email/templates'
 // minor deliverability signal.
 const FALLBACK_APP_URL = 'https://loyaltyapp.click'
 
-// Dashboard-only action ("Envoyer par e-mail" on /dashboard/customers). Uses the
-// authenticated client (not service role) so RLS's is_merchant_member() check is
-// what actually prevents a merchant from emailing someone else's customer — a
-// customerId belonging to another merchant just won't be found, not a 403.
+// Dashboard-only action ("Envoyer par e-mail" on /dashboard/customers).
+// Normally uses the authenticated client (not service role) so RLS's
+// is_merchant_member() check is what actually prevents a merchant from
+// emailing someone else's customer — a customerId belonging to another
+// merchant just won't be found, not a 403. During impersonation, RLS would
+// block the admin's own session entirely (see resolveMerchantId), so
+// dataClient becomes a service-role client instead — the explicit
+// `.eq('merchant_id', merchantId)` filters below take over as the tenant
+// boundary in that case, since service role has no RLS to fall back on.
 export async function POST(request: Request, { params }: { params: Promise<{ customerId: string }> }) {
   try {
     const supabase = await createClient()
@@ -26,14 +32,23 @@ export async function POST(request: Request, { params }: { params: Promise<{ cus
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: merchant } = await supabase.from('merchants').select('*').eq('owner_id', user.id).single()
+    const { merchantId, dataClient } = await resolveMerchantId(supabase, user.id)
+    if (!merchantId) {
+      return NextResponse.json({ error: 'Merchant not found' }, { status: 404 })
+    }
+    const { data: merchant } = await dataClient.from('merchants').select('*').eq('id', merchantId).single()
     if (!merchant) {
       return NextResponse.json({ error: 'Merchant not found' }, { status: 404 })
     }
 
     const { customerId } = await params
 
-    const { data: customer } = await supabase.from('customers').select('*').eq('id', customerId).single()
+    const { data: customer } = await dataClient
+      .from('customers')
+      .select('*')
+      .eq('id', customerId)
+      .eq('merchant_id', merchantId)
+      .single()
     if (!customer) {
       return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
     }
@@ -42,10 +57,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ cus
       return NextResponse.json({ error: 'Ce client n’a pas d’adresse email enregistrée.' }, { status: 400 })
     }
 
-    const { data: card } = await supabase
+    const { data: card } = await dataClient
       .from('loyalty_cards')
       .select('id')
       .eq('customer_id', customerId)
+      .eq('merchant_id', merchantId)
       .limit(1)
       .maybeSingle()
 

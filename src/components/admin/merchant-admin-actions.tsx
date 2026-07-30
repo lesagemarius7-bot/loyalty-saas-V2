@@ -40,8 +40,43 @@ export function MerchantAdminActions({ merchant }: { merchant: Merchant }) {
   const isSuspended = merchant.billing_status === 'canceled'
   const isPending = merchant.approval_status === 'pending'
 
+  async function handleImpersonate() {
+    setBusy(true)
+    try {
+      const res = await fetch('/api/admin/impersonate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ merchantId: merchant.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        showToast('error', data.error ?? 'Échec de la prise de main.')
+        setBusy(false)
+        return
+      }
+      router.push('/dashboard')
+    } catch {
+      showToast('error', 'Impossible de contacter le serveur.')
+      setBusy(false)
+    }
+  }
+
   return (
     <>
+      {!isPending && (
+        <Card>
+          <CardContent className="pt-6">
+            <Button variant="outline" className="w-full" disabled={busy} onClick={handleImpersonate}>
+              👁️ Se connecter en tant que {merchant.business_name}
+            </Button>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Ouvre le tableau de bord de ce commerçant en mode support (1 heure). Une bannière reste visible en
+              permanence tant que ce mode est actif.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {isPending && (
         <Card className="border-primary/30 bg-primary/5">
           <CardHeader>

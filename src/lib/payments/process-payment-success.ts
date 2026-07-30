@@ -3,6 +3,7 @@ import type { Database } from '@/types/database.types'
 import { isEmailConfigured, sendEmail } from '@/lib/email/resend'
 import { loyaltyCardReadyEmail } from '@/lib/email/templates'
 import { applyPurchasedCategory } from '@/lib/customers/purchase-habits'
+import { logSystemEvent } from '@/lib/logging/system-log'
 
 type Client = SupabaseClient<Database>
 
@@ -162,6 +163,13 @@ export async function processPaymentSuccess(supabase: Client, merchantId: string
         emailSent = true
       } catch (err) {
         console.error('[process-payment-success] failed to send enrollment email', customerId, err)
+        await logSystemEvent(supabase, {
+          merchantId,
+          level: 'warning',
+          category: 'resend',
+          message: 'Échec d’envoi de l’e-mail de carte Wallet après paiement.',
+          metadata: { customerId, reason: err instanceof Error ? err.message : String(err) },
+        })
       }
     }
   }

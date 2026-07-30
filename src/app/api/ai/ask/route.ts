@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { generateText, tool, stepCountIs } from 'ai'
 import { createClient } from '@/lib/supabase/server'
+import { resolveMerchantId } from '@/lib/auth/impersonation'
 import { getWeatherForCity } from '@/lib/weather/openweather'
 
 const bodySchema = z.object({
@@ -63,7 +64,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: merchant } = await supabase.from('merchants').select('id, business_name, city').eq('owner_id', user.id).single()
+    const { merchantId, dataClient } = await resolveMerchantId(supabase, user.id)
+    if (!merchantId) {
+      return NextResponse.json({ error: 'Merchant not found' }, { status: 404 })
+    }
+    const { data: merchant } = await dataClient.from('merchants').select('id, business_name, city').eq('id', merchantId).single()
     if (!merchant) {
       return NextResponse.json({ error: 'Merchant not found' }, { status: 404 })
     }
@@ -74,19 +79,19 @@ export async function POST(request: Request) {
     }
 
     const [{ data: program }, { data: customers }] = await Promise.all([
-      supabase
+      dataClient
         .from('loyalty_programs')
         .select('reward_threshold')
-        .eq('merchant_id', merchant.id)
+        .eq('merchant_id', merchantId)
         .eq('is_active', true)
         .limit(1)
         .maybeSingle(),
-      supabase
+      dataClient
         .from('customers')
         .select(
           'id, full_name, loyalty_cards(points_balance, status), customer_purchase_habits(favorite_category, last_purchased_category, last_transaction_at)'
         )
-        .eq('merchant_id', merchant.id),
+        .eq('merchant_id', merchantId),
     ])
 
     const weather = merchant.city ? await getWeatherForCity(merchant.city) : null

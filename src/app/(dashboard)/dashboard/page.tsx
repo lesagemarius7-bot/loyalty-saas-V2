@@ -1,5 +1,4 @@
 import Image from 'next/image'
-import { createClient } from '@/lib/supabase/server'
 import { getCurrentMerchant } from '@/lib/get-current-merchant'
 import { computeDashboardOverview } from '@/lib/analytics/dashboard-overview'
 import { KpiCards } from '@/components/dashboard/overview/kpi-cards'
@@ -12,11 +11,10 @@ import { DashboardErrorFallback } from '@/components/dashboard/dashboard-error-f
 const DEFAULT_WINDOW_DAYS = 30
 
 export default async function DashboardOverviewPage() {
-  const { merchant } = await getCurrentMerchant()
+  const { merchant, dataClient } = await getCurrentMerchant()
 
   try {
-    const supabase = await createClient()
-    const overview = await computeDashboardOverview(supabase, merchant, DEFAULT_WINDOW_DAYS)
+    const overview = await computeDashboardOverview(dataClient, merchant, DEFAULT_WINDOW_DAYS)
     const enrollmentUrl = `${process.env.NEXT_PUBLIC_APP_URL}/join/${merchant.slug}`
 
     return (

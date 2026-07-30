@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { resolveMerchantId } from '@/lib/auth/impersonation'
 import { deleteCustomers } from '@/lib/customers/delete-customers'
 
 // Trash icon on a single row in /dashboard/customers. Uses the authenticated
@@ -17,13 +18,13 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: merchant } = await supabase.from('merchants').select('id').eq('owner_id', user.id).single()
-    if (!merchant) {
+    const { merchantId, dataClient } = await resolveMerchantId(supabase, user.id)
+    if (!merchantId) {
       return NextResponse.json({ error: 'Merchant not found' }, { status: 404 })
     }
 
     const { customerId } = await params
-    const result = await deleteCustomers(supabase, merchant.id, [customerId])
+    const result = await deleteCustomers(dataClient, merchantId, [customerId])
 
     if (result.errors.length > 0) {
       return NextResponse.json({ error: result.errors[0] }, { status: 400 })

@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
 import { getCurrentMerchant } from '@/lib/get-current-merchant'
 import { NewCustomerButton } from '@/components/dashboard/new-customer-button'
 import { ImportCustomersButton } from '@/components/dashboard/customers/import-customers-button'
@@ -6,11 +5,9 @@ import { CustomersTable } from '@/components/dashboard/customers/customers-table
 import { DashboardErrorFallback } from '@/components/dashboard/dashboard-error-fallback'
 
 export default async function CustomersPage() {
-  const { merchant } = await getCurrentMerchant()
+  const { merchant, dataClient: supabase } = await getCurrentMerchant()
 
   try {
-    const supabase = await createClient()
-
     const [
       { data: customers, error: customersError },
       { data: templates, error: templatesError },

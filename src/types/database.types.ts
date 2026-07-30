@@ -35,6 +35,8 @@ type MerchantRow = {
   phone: string | null
   owner_name: string | null
   dunning_status: 'ok' | 'payment_failed' | 'retry_1' | 'suspended'
+  poc_reminder_7d_sent_at: string | null
+  poc_reminder_3d_sent_at: string | null
   created_at: string
   updated_at: string
 }
@@ -45,6 +47,16 @@ type MerchantStatusEventRow = {
   event_type: 'plan_changed' | 'billing_status_changed' | 'approval_status_changed'
   from_value: string | null
   to_value: string
+  created_at: string
+}
+
+type SystemLogRow = {
+  id: string
+  merchant_id: string | null
+  level: 'info' | 'warning' | 'error' | 'critical'
+  category: 'apns' | 'google_wallet' | 'resend' | 'stripe' | 'cron' | 'webhook'
+  message: string
+  metadata: Json
   created_at: string
 }
 
@@ -220,6 +232,20 @@ export interface Database {
         Relationships: [
           {
             foreignKeyName: 'merchant_status_events_merchant_id_fkey'
+            columns: ['merchant_id']
+            isOneToOne: false
+            referencedRelation: 'merchants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      system_logs: {
+        Row: SystemLogRow
+        Insert: Partial<SystemLogRow> & { category: SystemLogRow['category']; message: string }
+        Update: Partial<SystemLogRow>
+        Relationships: [
+          {
+            foreignKeyName: 'system_logs_merchant_id_fkey'
             columns: ['merchant_id']
             isOneToOne: false
             referencedRelation: 'merchants'

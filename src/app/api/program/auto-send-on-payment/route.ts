@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { resolveMerchantId } from '@/lib/auth/impersonation'
 
 const bodySchema = z.object({
   enabled: z.boolean(),
@@ -22,8 +23,8 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: merchant } = await supabase.from('merchants').select('id').eq('owner_id', user.id).single()
-    if (!merchant) {
+    const { merchantId, dataClient } = await resolveMerchantId(supabase, user.id)
+    if (!merchantId) {
       return NextResponse.json({ error: 'Merchant not found' }, { status: 404 })
     }
 
@@ -37,10 +38,10 @@ export async function PATCH(request: Request) {
       auto_send_channel: parsed.data.channel,
     }
 
-    const { data: program, error: programError } = await supabase
+    const { data: program, error: programError } = await dataClient
       .from('loyalty_programs')
       .select('id')
-      .eq('merchant_id', merchant.id)
+      .eq('merchant_id', merchantId)
       .eq('is_active', true)
       .limit(1)
       .maybeSingle()
@@ -51,8 +52,8 @@ export async function PATCH(request: Request) {
 
     // Same "no program row yet" fallback as /api/program/playbooks.
     const { error } = program
-      ? await supabase.from('loyalty_programs').update(fields).eq('id', program.id)
-      : await supabase.from('loyalty_programs').insert({ merchant_id: merchant.id, ...fields })
+      ? await dataClient.from('loyalty_programs').update(fields).eq('id', program.id)
+      : await dataClient.from('loyalty_programs').insert({ merchant_id: merchantId, ...fields })
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 })

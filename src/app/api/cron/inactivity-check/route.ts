@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { isAppleWalletConfigured, pushAppleWalletUpdate } from '@/lib/wallet/apple-pass'
 import { isGoogleWalletConfigured, sendGoogleWalletMessage } from '@/lib/wallet/google-wallet'
+import { logSystemEvent } from '@/lib/logging/system-log'
 
 // Vercel Functions default to 10s on Hobby — a daily batch across every
 // merchant's card list needs more room.
@@ -97,7 +98,16 @@ export async function GET(request: Request) {
           (registrations ?? []).map((r) => pushAppleWalletUpdate(r.push_token))
         )
         results.forEach((r) => {
-          if (r.status === 'rejected') console.error('[cron/inactivity-check] apple push failed', r.reason)
+          if (r.status === 'rejected') {
+            console.error('[cron/inactivity-check] apple push failed', r.reason)
+            void logSystemEvent(supabase, {
+              merchantId: program.merchant_id,
+              level: 'error',
+              category: 'apns',
+              message: 'Échec de mise à jour push Apple Wallet (relance inactivité).',
+              metadata: { reason: String(r.reason) },
+            })
+          }
         })
       }
 
@@ -107,7 +117,16 @@ export async function GET(request: Request) {
           googleCardIds.map((id) => sendGoogleWalletMessage(id, 'Loyalty', program.inactivity_message))
         )
         results.forEach((r) => {
-          if (r.status === 'rejected') console.error('[cron/inactivity-check] google message failed', r.reason)
+          if (r.status === 'rejected') {
+            console.error('[cron/inactivity-check] google message failed', r.reason)
+            void logSystemEvent(supabase, {
+              merchantId: program.merchant_id,
+              level: 'error',
+              category: 'google_wallet',
+              message: 'Échec de mise à jour Google Wallet (relance inactivité).',
+              metadata: { reason: String(r.reason) },
+            })
+          }
         })
       }
 
@@ -130,6 +149,11 @@ export async function GET(request: Request) {
     })
   } catch (err) {
     console.error('[cron/inactivity-check] failed', err)
+    await logSystemEvent(createServiceRoleClient(), {
+      level: 'critical',
+      category: 'cron',
+      message: `/api/cron/inactivity-check a échoué entièrement : ${err instanceof Error ? err.message : String(err)}`,
+    })
     return NextResponse.json(
       { error: 'Cron failed', details: err instanceof Error ? err.message : String(err) },
       { status: 500 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { resolveMerchantId } from '@/lib/auth/impersonation'
 import { deliverToCards, isAnyWalletChannelConfigured, type DeliveryCard } from '@/lib/notifications/deliver'
 
 const bodySchema = z.object({
@@ -34,7 +35,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: merchant } = await supabase.from('merchants').select('id, business_name').eq('owner_id', user.id).single()
+    const { merchantId, dataClient } = await resolveMerchantId(supabase, user.id)
+    if (!merchantId) {
+      return NextResponse.json({ error: 'Merchant not found' }, { status: 404 })
+    }
+    const { data: merchant } = await dataClient.from('merchants').select('id, business_name').eq('id', merchantId).single()
     if (!merchant) {
       return NextResponse.json({ error: 'Merchant not found' }, { status: 404 })
     }
@@ -55,12 +60,12 @@ export async function POST(request: Request) {
     // Scoped to this merchant's own customers — the merchant_id filter is
     // what stops a crafted customerIds array from reaching someone else's
     // cards, not client-side trust in the submitted ids.
-    const { data: cards, error: cardsError } = await supabase
+    const { data: cards, error: cardsError } = await dataClient
       .from('loyalty_cards')
       .select(
         'id, customer_id, google_object_id, points_balance, customer:customers(full_name, customer_purchase_habits(favorite_category, last_purchased_category, last_transaction_at))'
       )
-      .eq('merchant_id', merchant.id)
+      .eq('merchant_id', merchantId)
       .in('customer_id', customerIds)
 
     if (cardsError) {
@@ -87,10 +92,10 @@ export async function POST(request: Request) {
 
     // Created before delivery so notification_deliveries rows can reference
     // a real campaign_id from the start.
-    const { data: campaign, error: campaignInsertError } = await supabase
+    const { data: campaign, error: campaignInsertError } = await dataClient
       .from('notification_campaigns')
       .insert({
-        merchant_id: merchant.id,
+        merchant_id: merchantId,
         message,
         recipient_count: cards.length,
         type: 'targeted',
@@ -104,16 +109,16 @@ export async function POST(request: Request) {
     }
 
     const result = await deliverToCards(
-      supabase,
+      dataClient,
       deliveryCards,
       title,
       message,
       merchant.business_name,
-      { merchantId: merchant.id, campaignId: campaign.id },
+      { merchantId, campaignId: campaign.id },
       { offerCode, discount, expiresAt: expiresAt ? new Date(`${expiresAt}T23:59:59`).toISOString() : undefined }
     )
 
-    await supabase.from('notification_campaigns').update({ recipient_count: result.cardsUpdated }).eq('id', campaign.id)
+    await dataClient.from('notification_campaigns').update({ recipient_count: result.cardsUpdated }).eq('id', campaign.id)
 
     return NextResponse.json({ ok: true, recipientCount: result.cardsUpdated, apple: result.apple, google: result.google })
   } catch (err) {

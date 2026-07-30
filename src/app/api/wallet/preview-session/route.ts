@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { resolveMerchantId } from '@/lib/auth/impersonation'
 import { previewPayloadSchema } from '@/lib/wallet/preview-card'
 
 // Called (debounced) from the /dashboard/card-design form on every edit. Persists
@@ -16,9 +17,9 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { data: merchant } = await supabase.from('merchants').select('id').eq('owner_id', user.id).single()
+  const { merchantId, dataClient } = await resolveMerchantId(supabase, user.id)
 
-  if (!merchant) {
+  if (!merchantId) {
     return NextResponse.json({ error: 'Merchant not found' }, { status: 404 })
   }
 
@@ -27,9 +28,9 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { error } = await supabase
+  const { error } = await dataClient
     .from('card_preview_sessions')
-    .upsert({ merchant_id: merchant.id, payload: parsed.data, updated_at: new Date().toISOString() })
+    .upsert({ merchant_id: merchantId, payload: parsed.data, updated_at: new Date().toISOString() })
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 })

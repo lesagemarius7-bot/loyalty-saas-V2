@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
 import { getCurrentMerchant } from '@/lib/get-current-merchant'
 import { DormantCustomerPlaybook } from '@/components/dashboard/playbooks/dormant-customer-playbook'
 import { SmartEngagementPlaybook } from '@/components/dashboard/playbooks/smart-engagement-playbook'
@@ -14,11 +13,9 @@ const DEFAULT_THRESHOLD_DAYS = 30
 const DEFAULT_MESSAGE = 'On ne vous a pas vu depuis un moment ! Revenez vite pour cumuler des points 🎁'
 
 export default async function PlaybooksPage() {
-  const { merchant } = await getCurrentMerchant()
+  const { merchant, dataClient: supabase } = await getCurrentMerchant()
 
   try {
-    const supabase = await createClient()
-
     const { data: program, error: programError } = await supabase
       .from('loyalty_programs')
       .select('inactivity_reminder_enabled, inactivity_threshold_days, inactivity_message, smart_engagement_enabled')
