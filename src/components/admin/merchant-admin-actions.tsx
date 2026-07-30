@@ -79,7 +79,7 @@ export function MerchantAdminActions({ merchant }: { merchant: Merchant }) {
       )}
 
       {isPending && (
-        <AdminCard className="border-[#453ee8]/40 bg-[#453ee8]/10">
+        <AdminCard accent="neutral" className="border-[#453ee8]/40 bg-[#453ee8]/10">
           <AdminCardHeader>
             <AdminCardTitle className="text-base">Demande en attente</AdminCardTitle>
           </AdminCardHeader>

@@ -41,7 +41,7 @@ export function PendingRequestsSection({ requests }: { requests: AdminMerchantSu
 
   return (
     <>
-      <AdminCard className="border-[#453ee8]/40 bg-[#453ee8]/10">
+      <AdminCard accent="neutral" className="border-[#453ee8]/40 bg-[#453ee8]/10">
         <AdminCardHeader>
           <AdminCardTitle className="text-base">📋 Demandes en attente ({requests.length})</AdminCardTitle>
           <AdminCardDescription>Nouvelles inscriptions en attente de validation.</AdminCardDescription>

@@ -147,7 +147,7 @@ export default async function AdminMerchantDetailPage({ params }: { params: Prom
             </AdminCardContent>
           </AdminCard>
 
-          <AdminCard>
+          <AdminCard accent="green">
             <AdminCardHeader>
               <AdminCardTitle className="text-base">Factures</AdminCardTitle>
               <AdminCardDescription>

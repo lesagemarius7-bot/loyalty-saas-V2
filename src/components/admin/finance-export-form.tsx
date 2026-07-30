@@ -13,7 +13,7 @@ export function FinanceExportForm() {
   const [month, setMonth] = useState(currentMonthValue())
 
   return (
-    <AdminCard>
+    <AdminCard accent="green">
       <AdminCardHeader>
         <AdminCardTitle className="text-base">Export comptable (CSV)</AdminCardTitle>
         <AdminCardDescription>

@@ -18,7 +18,7 @@ export function PocHealthTable({ entries }: { entries: PocHealthEntry[] }) {
 
   return (
     <div className="space-y-6">
-      <AdminCard>
+      <AdminCard accent="green">
         <AdminCardHeader className="pb-2">
           <AdminCardDescription>🔮 Pipeline MRR pondéré (POC en cours)</AdminCardDescription>
           <AdminCardTitle className="text-3xl">{weightedPipelineMrr} €</AdminCardTitle>

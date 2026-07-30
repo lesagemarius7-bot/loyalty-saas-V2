@@ -10,10 +10,30 @@ import { cn } from '@/lib/utils'
 // bright white box, and text relying on --foreground (near-black) can be
 // close to invisible directly on the dark background. AdminCard hardcodes
 // slate values instead of theme tokens so it looks right regardless.
-export function AdminCard({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+//
+// `accent` gives the border real brand color instead of flat slate, so a
+// page full of cards reads as distinct sections at a glance instead of one
+// undifferentiated wall of boxes — but it's a deliberate two-color system,
+// not decoration: 'blue' (the real Loyalty indigo) marks operational/
+// informational cards, 'green' (the real Loyalty accent) marks anything
+// revenue/money-related (MRR, ARR, invoices, exports…). Low opacity on
+// purpose — "simple, épuré" means a visible tint, not a saturated outline.
+// 'neutral' opts back out to plain slate for cards that already carry their
+// own intentional tint (e.g. the pending-request highlight).
+const ACCENT_BORDER = {
+  blue: 'border-[#706af1]/30',
+  green: 'border-[#1cc08e]/40',
+  neutral: 'border-slate-800',
+} as const
+
+export function AdminCard({
+  accent = 'blue',
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement> & { accent?: keyof typeof ACCENT_BORDER }) {
   return (
     <div
-      className={cn('rounded-lg border border-slate-800 bg-white/[0.03] text-slate-100 shadow-sm', className)}
+      className={cn('rounded-lg border bg-white/[0.03] text-slate-100 shadow-sm', ACCENT_BORDER[accent], className)}
       {...props}
     />
   )

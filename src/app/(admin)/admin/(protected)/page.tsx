@@ -67,7 +67,7 @@ export default async function AdminOverviewPage() {
           </AdminCardContent>
         </AdminCard>
 
-        <AdminCard>
+        <AdminCard accent="green">
           <AdminCardHeader className="pb-2">
             <AdminCardDescription>💰 MRR projeté</AdminCardDescription>
             <AdminCardTitle className="text-3xl">{overview.revenue.projectedMrr} €</AdminCardTitle>

@@ -41,7 +41,7 @@ export default async function AdminFinancePage() {
             content: (
               <div className="space-y-6">
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <AdminCard>
+                  <AdminCard accent="green">
                     <AdminCardHeader className="pb-2">
                       <AdminCardDescription>💰 MRR actuel</AdminCardDescription>
                       <AdminCardTitle className="text-3xl">{finance.currentMrr} €</AdminCardTitle>
@@ -51,7 +51,7 @@ export default async function AdminFinancePage() {
                     </AdminCardContent>
                   </AdminCard>
 
-                  <AdminCard>
+                  <AdminCard accent="green">
                     <AdminCardHeader className="pb-2">
                       <AdminCardDescription>📈 ARR actuel</AdminCardDescription>
                       <AdminCardTitle className="text-3xl">{finance.currentArr} €</AdminCardTitle>
@@ -59,7 +59,7 @@ export default async function AdminFinancePage() {
                     <AdminCardContent className="text-xs text-slate-400">MRR actuel × 12</AdminCardContent>
                   </AdminCard>
 
-                  <AdminCard>
+                  <AdminCard accent="green">
                     <AdminCardHeader className="pb-2">
                       <AdminCardDescription>👤 ARPU</AdminCardDescription>
                       <AdminCardTitle className="text-3xl">{ue.arpu} €</AdminCardTitle>
@@ -67,7 +67,7 @@ export default async function AdminFinancePage() {
                     <AdminCardContent className="text-xs text-slate-400">Panier moyen / commerçant payant</AdminCardContent>
                   </AdminCard>
 
-                  <AdminCard>
+                  <AdminCard accent="green">
                     <AdminCardHeader className="pb-2">
                       <AdminCardDescription>💎 LTV estimée</AdminCardDescription>
                       <AdminCardTitle className="text-3xl">{ue.ltvEstimateEur !== null ? `${ue.ltvEstimateEur} €` : '—'}</AdminCardTitle>
@@ -77,7 +77,7 @@ export default async function AdminFinancePage() {
                     </AdminCardContent>
                   </AdminCard>
 
-                  <AdminCard>
+                  <AdminCard accent="green">
                     <AdminCardHeader className="pb-2">
                       <AdminCardDescription>📉 Churn logo (ce mois)</AdminCardDescription>
                       <AdminCardTitle className="text-3xl">{ue.logoChurnRatePct !== null ? `${ue.logoChurnRatePct}%` : '—'}</AdminCardTitle>
@@ -87,7 +87,7 @@ export default async function AdminFinancePage() {
                     </AdminCardContent>
                   </AdminCard>
 
-                  <AdminCard>
+                  <AdminCard accent="green">
                     <AdminCardHeader className="pb-2">
                       <AdminCardDescription>💸 Churn revenu (ce mois)</AdminCardDescription>
                       <AdminCardTitle className="text-3xl">{ue.revenueChurnEurThisMonth} €</AdminCardTitle>
@@ -95,7 +95,7 @@ export default async function AdminFinancePage() {
                     <AdminCardContent className="text-xs text-slate-400">MRR perdu sur résiliations réelles</AdminCardContent>
                   </AdminCard>
 
-                  <AdminCard>
+                  <AdminCard accent="green">
                     <AdminCardHeader className="pb-2">
                       <AdminCardDescription>🚀 Expansion MRR (ce mois)</AdminCardDescription>
                       <AdminCardTitle className="text-3xl">+{ue.expansionMrrThisMonth} €</AdminCardTitle>
@@ -103,7 +103,7 @@ export default async function AdminFinancePage() {
                     <AdminCardContent className="text-xs text-slate-400">Montées en gamme Essentiel → Performance IA</AdminCardContent>
                   </AdminCard>
 
-                  <AdminCard>
+                  <AdminCard accent="green">
                     <AdminCardHeader className="pb-2">
                       <AdminCardDescription>⚖️ Marge brute globale</AdminCardDescription>
                       <AdminCardTitle className="text-3xl">{gm.grossMarginPct !== null ? `${gm.grossMarginPct}%` : '—'}</AdminCardTitle>
@@ -122,7 +122,7 @@ export default async function AdminFinancePage() {
                   </p>
                 )}
 
-                <AdminCard>
+                <AdminCard accent="green">
                   <AdminCardHeader>
                     <AdminCardTitle className="text-base">Projection MRR — 6 prochains mois</AdminCardTitle>
                     <AdminCardDescription>
@@ -148,7 +148,7 @@ export default async function AdminFinancePage() {
                   </AdminCardContent>
                 </AdminCard>
 
-                <AdminCard>
+                <AdminCard accent="green">
                   <AdminCardHeader>
                     <AdminCardTitle className="text-base">Conversions POC attendues</AdminCardTitle>
                     <AdminCardDescription>Détail des commerçants en essai et de leur bascule prévue en abonnement payant.</AdminCardDescription>
