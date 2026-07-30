@@ -1,11 +1,19 @@
-import { Badge } from '@/components/ui/badge'
+import { AdminBadge } from '@/components/admin/admin-badge'
+import { cn } from '@/lib/utils'
 import type { SystemLog, Merchant } from '@/types'
 
-const LEVEL_VARIANT: Record<SystemLog['level'], 'destructive' | 'secondary' | 'outline'> = {
+const LEVEL_VARIANT: Record<SystemLog['level'], 'destructive' | 'warning' | 'outline'> = {
   critical: 'destructive',
   error: 'destructive',
-  warning: 'secondary',
+  warning: 'warning',
   info: 'outline',
+}
+
+const LEVEL_EDGE: Record<SystemLog['level'], string> = {
+  critical: 'border-l-red-500',
+  error: 'border-l-red-500',
+  warning: 'border-l-amber-500',
+  info: 'border-l-slate-600',
 }
 
 const LEVEL_LABELS: Record<SystemLog['level'], string> = {
@@ -36,9 +44,12 @@ export function SystemLogsTable({ logs }: { logs: LogWithMerchant[] }) {
         </thead>
         <tbody>
           {logs.map((log) => (
-            <tr key={log.id} className="border-b border-slate-800 align-top last:border-0">
+            <tr
+              key={log.id}
+              className={cn('border-b border-l-4 border-slate-800 align-top last:border-0', LEVEL_EDGE[log.level])}
+            >
               <td className="px-4 py-3">
-                <Badge variant={LEVEL_VARIANT[log.level]}>{LEVEL_LABELS[log.level]}</Badge>
+                <AdminBadge variant={LEVEL_VARIANT[log.level]}>{LEVEL_LABELS[log.level]}</AdminBadge>
               </td>
               <td className="px-4 py-3 font-mono text-xs text-slate-400">{log.category}</td>
               <td className="px-4 py-3 text-slate-300">{log.merchant?.business_name ?? '—'}</td>

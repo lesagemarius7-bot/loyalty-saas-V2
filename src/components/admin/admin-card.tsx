@@ -21,8 +21,8 @@ import { cn } from '@/lib/utils'
 // 'neutral' opts back out to plain slate for cards that already carry their
 // own intentional tint (e.g. the pending-request highlight).
 const ACCENT_BORDER = {
-  blue: 'border-[#706af1]/30',
-  green: 'border-[#1cc08e]/40',
+  blue: 'border-[#706af1]/50',
+  green: 'border-[#1cc08e]/60',
   neutral: 'border-slate-800',
 } as const
 
@@ -64,5 +64,8 @@ export function AdminCardFooter({ className, ...props }: React.HTMLAttributes<HT
 // (border-border, hover:bg-secondary) uses light-mode tokens whose hover
 // state is a near-white fill, which combined with inherited light text
 // becomes low-contrast on hover. twMerge (via cn()) resolves the conflicts
-// in favor of these classes since they're applied last.
-export const ADMIN_OUTLINE_BUTTON = 'border-slate-700 text-slate-100 hover:bg-slate-800'
+// in favor of these classes since they're applied last. A visible resting
+// bg (not just on hover) so these buttons don't blend into the card at rest
+// — the shared Button's outline variant is bg-transparent by default, which
+// on a near-black admin card reads as barely-there text with a faint border.
+export const ADMIN_OUTLINE_BUTTON = 'border-slate-600 bg-slate-800/80 text-slate-100 hover:bg-slate-700 hover:border-slate-500'

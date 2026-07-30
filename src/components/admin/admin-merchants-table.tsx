@@ -20,6 +20,26 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'inactive', label: 'Inactifs (> 14j)' },
 ]
 
+// Mirrors the real stored approval_status/billing_status values (not the
+// computed "En activité"/"Inactif" activity read) — lets an admin find e.g.
+// every merchant currently past_due regardless of how recently their
+// customers scanned a card.
+const STATUS_OPTIONS: { value: string; label: string }[] = [
+  { value: 'all', label: 'Tous les statuts' },
+  { value: 'pending', label: 'En attente de validation' },
+  { value: 'rejected', label: 'Refusé' },
+  { value: 'poc_active', label: 'Essai (POC)' },
+  { value: 'active', label: 'Actif' },
+  { value: 'past_due', label: 'Paiement en retard' },
+  { value: 'canceled', label: 'Suspendu / résilié' },
+]
+
+function matchesStatus(m: AdminMerchantSummary, statusValue: string): boolean {
+  if (statusValue === 'all') return true
+  if (statusValue === 'pending' || statusValue === 'rejected') return m.approvalStatus === statusValue
+  return m.approvalStatus === 'approved' && m.billingStatus === statusValue
+}
+
 const DAY_MS = 24 * 60 * 60 * 1000
 
 function daysSince(iso: string): number {
@@ -29,38 +49,61 @@ function daysSince(iso: string): number {
 // Low-opacity saturated bg + light-toned text of the same hue — reads well
 // on the dark admin shell, unlike the light bg-X-100/text-X-800 pairs this
 // used to use (calibrated for a white page, illegible-ish on slate-900).
+// `edge` feeds a matching colored left-border on the row so status is
+// scannable down the whole column, not just inside the pill.
 function activityBadge(merchant: AdminMerchantSummary) {
   if (merchant.approvalStatus === 'pending') {
-    return { label: 'En attente de validation', className: 'bg-violet-500/20 text-violet-300' }
+    return { label: 'En attente de validation', className: 'bg-violet-500/20 text-violet-300', edge: 'border-l-violet-500' }
   }
   if (merchant.approvalStatus === 'rejected') {
-    return { label: 'Refusé', className: 'bg-red-500/20 text-red-300' }
+    return { label: 'Refusé', className: 'bg-red-500/20 text-red-300', edge: 'border-l-red-500' }
   }
 
   const reference = merchant.lastActivityAt ?? merchant.createdAt
   const hours = (Date.now() - new Date(reference).getTime()) / (60 * 60 * 1000)
 
   if (merchant.billingStatus === 'poc_active' && merchant.pocDaysRemaining !== null) {
-    return { label: `POC actif — ${merchant.pocDaysRemaining}j restants`, className: 'bg-blue-500/20 text-blue-300' }
+    return {
+      label: `POC actif — ${merchant.pocDaysRemaining}j restants`,
+      className: 'bg-[#706af1]/20 text-[#a5a0f5]',
+      edge: 'border-l-[#706af1]',
+    }
   }
-  if (hours < 48) return { label: 'En activité', className: 'bg-emerald-500/20 text-emerald-300' }
-  if (hours > 7 * 24) return { label: 'Inactif', className: 'bg-orange-500/20 text-orange-300' }
-  return { label: 'Actif', className: 'bg-emerald-500/20 text-emerald-300' }
+  if (hours > 7 * 24) return { label: 'Inactif', className: 'bg-orange-500/20 text-orange-300', edge: 'border-l-orange-500' }
+  return { label: 'Actif', className: 'bg-emerald-500/20 text-emerald-300', edge: 'border-l-emerald-500' }
 }
 
 export function AdminMerchantsTable({ merchants }: { merchants: AdminMerchantSummary[] }) {
   const [filter, setFilter] = useState<FilterKey>('all')
+  const [search, setSearch] = useState('')
+  const [statusValue, setStatusValue] = useState('all')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [extendingId, setExtendingId] = useState<string | null>(null)
   const { toast, showToast, dismiss } = useToast()
 
   const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase()
     return merchants.filter((m) => {
-      if (filter === 'this_week') return daysSince(m.createdAt) <= 7
-      if (filter === 'poc_expiring') return m.pocDaysRemaining !== null && m.pocDaysRemaining < 10
-      if (filter === 'inactive') return daysSince(m.lastActivityAt ?? m.createdAt) > 14
+      if (filter === 'this_week' && daysSince(m.createdAt) > 7) return false
+      if (filter === 'poc_expiring' && !(m.pocDaysRemaining !== null && m.pocDaysRemaining < 10)) return false
+      if (filter === 'inactive' && daysSince(m.lastActivityAt ?? m.createdAt) <= 14) return false
+
+      if (!matchesStatus(m, statusValue)) return false
+
+      if (term && !m.businessName.toLowerCase().includes(term) && !(m.ownerEmail ?? '').toLowerCase().includes(term)) {
+        return false
+      }
+
+      const createdDate = m.createdAt.slice(0, 10)
+      if (dateFrom && createdDate < dateFrom) return false
+      if (dateTo && createdDate > dateTo) return false
+
       return true
     })
-  }, [merchants, filter])
+  }, [merchants, filter, search, statusValue, dateFrom, dateTo])
+
+  const hasCustomFilters = Boolean(search || statusValue !== 'all' || dateFrom || dateTo)
 
   async function extendPoc(merchantId: string) {
     setExtendingId(merchantId)
@@ -105,6 +148,67 @@ export function AdminMerchantsTable({ merchants }: { merchants: AdminMerchantSum
       </div>
 
       <AdminCard>
+        <AdminCardContent className="flex flex-wrap items-end gap-3 p-4">
+          <div className="min-w-[200px] flex-1 space-y-1">
+            <label className="text-xs font-medium text-slate-400">Recherche</label>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Enseigne ou e-mail du gérant…"
+              className="w-full rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-slate-100 placeholder:text-slate-500"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-slate-400">Statut</label>
+            <select
+              value={statusValue}
+              onChange={(e) => setStatusValue(e.target.value)}
+              className="rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-slate-100"
+            >
+              {STATUS_OPTIONS.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-slate-400">Inscrit à partir du</label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-slate-100"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-slate-400">Jusqu’au</label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-slate-100"
+            />
+          </div>
+          {hasCustomFilters && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('')
+                setStatusValue('all')
+                setDateFrom('')
+                setDateTo('')
+              }}
+              className="rounded-md px-2 py-1.5 text-sm text-slate-400 underline hover:text-slate-200"
+            >
+              Réinitialiser
+            </button>
+          )}
+        </AdminCardContent>
+      </AdminCard>
+
+      <AdminCard>
         <AdminCardContent className="w-full max-w-full overflow-x-auto p-0">
           <table className="w-full min-w-[900px] text-sm">
             <thead>
@@ -123,7 +227,10 @@ export function AdminMerchantsTable({ merchants }: { merchants: AdminMerchantSum
               {filtered.map((m) => {
                 const badge = activityBadge(m)
                 return (
-                  <tr key={m.id} className="border-b border-slate-800 last:border-0 hover:bg-white/[0.02]">
+                  <tr
+                    key={m.id}
+                    className={cn('border-b border-l-4 border-slate-800 last:border-0 hover:bg-white/[0.02]', badge.edge)}
+                  >
                     <td className="px-4 py-3 font-medium text-slate-100">{m.businessName}</td>
                     <td className="px-4 py-3 text-slate-400">{m.ownerEmail ?? '—'}</td>
                     <td className="px-4 py-3 text-slate-400">{new Date(m.createdAt).toLocaleDateString('fr-FR')}</td>
@@ -163,7 +270,7 @@ export function AdminMerchantsTable({ merchants }: { merchants: AdminMerchantSum
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan={8} className="px-6 py-8 text-center text-slate-400">
-                    Aucun commerçant ne correspond à ce filtre.
+                    Aucun commerçant ne correspond à ces filtres.
                   </td>
                 </tr>
               )}

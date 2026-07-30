@@ -14,6 +14,8 @@ export function MerchantAdminActions({ merchant }: { merchant: Merchant }) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [plan, setPlan] = useState(merchant.subscription_plan)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [deleting, setDeleting] = useState(false)
   const { toast, showToast, dismiss } = useToast()
 
   async function runAction(body: Record<string, unknown>, successMessage: string) {
@@ -40,6 +42,24 @@ export function MerchantAdminActions({ merchant }: { merchant: Merchant }) {
 
   const isSuspended = merchant.billing_status === 'canceled'
   const isPending = merchant.approval_status === 'pending'
+
+  async function handleDelete() {
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/admin/merchants/${merchant.id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) {
+        showToast('error', data.error ?? 'Échec de la suppression.')
+        setDeleting(false)
+        return
+      }
+      router.push('/admin/merchants')
+      router.refresh()
+    } catch {
+      showToast('error', 'Impossible de contacter le serveur.')
+      setDeleting(false)
+    }
+  }
 
   async function handleImpersonate() {
     setBusy(true)
@@ -165,6 +185,42 @@ export function MerchantAdminActions({ merchant }: { merchant: Merchant }) {
           </div>
         </AdminCardContent>
       </AdminCard>
+
+      {!merchant.is_super_admin && (
+        <AdminCard accent="neutral" className="border-red-500/40 bg-red-500/5">
+          <AdminCardHeader>
+            <AdminCardTitle className="text-base text-red-400">Zone dangereuse</AdminCardTitle>
+          </AdminCardHeader>
+          <AdminCardContent className="space-y-3">
+            <p className="text-xs text-slate-400">
+              Supprime définitivement ce commerçant et toutes ses données (clients, cartes Wallet, transactions,
+              campagnes). Le compte de connexion du gérant n’est pas supprimé — seul ce commerçant l’est.
+              Irréversible.
+            </p>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-slate-300">
+                Tapez « {merchant.business_name} » pour confirmer
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                disabled={deleting}
+                className="w-full rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-slate-100"
+                placeholder={merchant.business_name}
+              />
+            </div>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={deleting || deleteConfirmText !== merchant.business_name}
+              onClick={handleDelete}
+            >
+              {deleting ? 'Suppression…' : '🗑️ Supprimer définitivement ce commerçant'}
+            </Button>
+          </AdminCardContent>
+        </AdminCard>
+      )}
 
       {toast && <Toast variant={toast.variant} message={toast.message} onDismiss={dismiss} />}
     </div>

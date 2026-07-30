@@ -2,13 +2,31 @@ import Link from 'next/link'
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { computeAdminOverview } from '@/lib/analytics/admin-overview'
 import { AdminCard, AdminCardContent, AdminCardDescription, AdminCardHeader, AdminCardTitle } from '@/components/admin/admin-card'
-import { Badge } from '@/components/ui/badge'
+import { AdminBadge } from '@/components/admin/admin-badge'
+import { cn } from '@/lib/utils'
 
 const BILLING_STATUS_LABELS: Record<string, string> = {
   poc_active: 'Essai (POC)',
   active: 'Actif',
   past_due: 'Paiement en retard',
   canceled: 'Résilié',
+}
+
+const BILLING_STATUS_VARIANT: Record<string, 'info' | 'success' | 'warning' | 'destructive'> = {
+  poc_active: 'info',
+  active: 'success',
+  past_due: 'warning',
+  canceled: 'destructive',
+}
+
+// Matches BILLING_STATUS_VARIANT's semantics one-for-one — a colored left
+// edge per row so the list scans at a glance (which signups need attention)
+// without having to read every badge individually.
+const BILLING_STATUS_EDGE: Record<string, string> = {
+  poc_active: 'border-l-[#706af1]',
+  active: 'border-l-emerald-500',
+  past_due: 'border-l-amber-500',
+  canceled: 'border-l-red-500',
 }
 
 export default async function AdminOverviewPage() {
@@ -106,14 +124,17 @@ export default async function AdminOverviewPage() {
               <Link
                 key={m.id}
                 href={`/admin/merchants/${m.id}`}
-                className="flex items-center justify-between rounded-md border border-slate-800 px-3 py-2 text-sm hover:bg-slate-800/50"
+                className={cn(
+                  'flex items-center justify-between rounded-md border border-l-4 border-slate-800 px-3 py-2 text-sm hover:bg-slate-800/50',
+                  BILLING_STATUS_EDGE[m.billingStatus] ?? 'border-l-slate-600'
+                )}
               >
                 <span className="font-medium text-slate-100">{m.businessName}</span>
                 <div className="flex items-center gap-2 text-slate-400">
                   <span>{new Date(m.createdAt).toLocaleDateString('fr-FR')}</span>
-                  <Badge variant={m.billingStatus === 'active' ? 'success' : 'secondary'}>
+                  <AdminBadge variant={BILLING_STATUS_VARIANT[m.billingStatus] ?? 'secondary'}>
                     {BILLING_STATUS_LABELS[m.billingStatus] ?? m.billingStatus}
-                  </Badge>
+                  </AdminBadge>
                 </div>
               </Link>
             ))

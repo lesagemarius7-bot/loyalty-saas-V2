@@ -1,12 +1,16 @@
 import Link from 'next/link'
-import { Badge } from '@/components/ui/badge'
+import { AdminBadge } from '@/components/admin/admin-badge'
 import { AdminCard, AdminCardContent, AdminCardHeader, AdminCardTitle, AdminCardDescription } from '@/components/admin/admin-card'
+import { cn } from '@/lib/utils'
 import type { PocHealthEntry } from '@/lib/analytics/admin-finance'
 
-const SCORE_META: Record<PocHealthEntry['score'], { label: string; variant: 'success' | 'secondary' | 'destructive' }> = {
-  high: { label: '🟢 Fort', variant: 'success' },
-  medium: { label: '🟡 Moyen', variant: 'secondary' },
-  low: { label: '🔴 Faible', variant: 'destructive' },
+const SCORE_META: Record<
+  PocHealthEntry['score'],
+  { label: string; variant: 'success' | 'warning' | 'destructive'; edge: string }
+> = {
+  high: { label: '🟢 Fort', variant: 'success', edge: 'border-l-emerald-500' },
+  medium: { label: '🟡 Moyen', variant: 'warning', edge: 'border-l-amber-500' },
+  low: { label: '🔴 Faible', variant: 'destructive', edge: 'border-l-red-500' },
 }
 
 export function PocHealthTable({ entries }: { entries: PocHealthEntry[] }) {
@@ -45,7 +49,10 @@ export function PocHealthTable({ entries }: { entries: PocHealthEntry[] }) {
               <Link
                 key={entry.merchantId}
                 href={`/admin/merchants/${entry.merchantId}`}
-                className="flex flex-col gap-2 rounded-md border border-slate-800 px-4 py-3 hover:bg-slate-800/50 sm:flex-row sm:items-center sm:justify-between"
+                className={cn(
+                  'flex flex-col gap-2 rounded-md border border-l-4 border-slate-800 px-4 py-3 hover:bg-slate-800/50 sm:flex-row sm:items-center sm:justify-between',
+                  SCORE_META[entry.score].edge
+                )}
               >
                 <div>
                   <p className="font-medium text-white">{entry.businessName}</p>
@@ -59,7 +66,7 @@ export function PocHealthTable({ entries }: { entries: PocHealthEntry[] }) {
                 </div>
                 <div className="flex items-center gap-2 text-sm text-slate-400">
                   <span>{entry.daysRemaining} j restant(s)</span>
-                  <Badge variant={SCORE_META[entry.score].variant}>{SCORE_META[entry.score].label}</Badge>
+                  <AdminBadge variant={SCORE_META[entry.score].variant}>{SCORE_META[entry.score].label}</AdminBadge>
                 </div>
               </Link>
             ))

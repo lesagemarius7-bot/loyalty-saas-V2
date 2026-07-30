@@ -5,7 +5,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server'
 import { computeDashboardOverview } from '@/lib/analytics/dashboard-overview'
 import { stripe } from '@/lib/stripe/client'
 import { AdminCard, AdminCardContent, AdminCardHeader, AdminCardTitle, AdminCardDescription } from '@/components/admin/admin-card'
-import { Badge } from '@/components/ui/badge'
+import { AdminBadge } from '@/components/admin/admin-badge'
 import { MerchantAdminActions } from '@/components/admin/merchant-admin-actions'
 import type { Merchant } from '@/types'
 
@@ -29,6 +29,13 @@ const BILLING_STATUS_LABELS: Record<string, string> = {
   active: 'Actif',
   past_due: 'Paiement en retard',
   canceled: 'Suspendu / résilié',
+}
+
+const BILLING_STATUS_VARIANT: Record<string, 'info' | 'success' | 'warning' | 'destructive'> = {
+  poc_active: 'info',
+  active: 'success',
+  past_due: 'warning',
+  canceled: 'destructive',
 }
 
 const APPROVAL_STATUS_LABELS: Record<string, string> = {
@@ -77,16 +84,14 @@ export default async function AdminMerchantDetailPage({ params }: { params: Prom
         </p>
         <div className="mt-2 flex items-center gap-2">
           {merchant.approval_status !== 'approved' && (
-            <Badge variant={merchant.approval_status === 'rejected' ? 'destructive' : 'secondary'}>
+            <AdminBadge variant={merchant.approval_status === 'rejected' ? 'destructive' : 'warning'}>
               {APPROVAL_STATUS_LABELS[merchant.approval_status] ?? merchant.approval_status}
-            </Badge>
+            </AdminBadge>
           )}
-          <Badge variant={merchant.billing_status === 'active' ? 'success' : 'secondary'}>
+          <AdminBadge variant={BILLING_STATUS_VARIANT[merchant.billing_status] ?? 'secondary'}>
             {BILLING_STATUS_LABELS[merchant.billing_status] ?? merchant.billing_status}
-          </Badge>
-          <Badge variant="outline" className="border-slate-700 text-slate-200">
-            {merchant.subscription_plan}
-          </Badge>
+          </AdminBadge>
+          <AdminBadge variant="outline">{merchant.subscription_plan}</AdminBadge>
         </div>
       </div>
 

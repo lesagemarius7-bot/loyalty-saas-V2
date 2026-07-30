@@ -134,3 +134,48 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ me
     )
   }
 }
+
+// Irreversible — every FK referencing merchants(id) across the schema is
+// `on delete cascade` (customers, loyalty_cards, transactions, campaigns,
+// system_logs, merchant_status_events, etc.), so this cleanly removes every
+// trace of the merchant's business data in one statement. Does NOT delete
+// the owner's auth.users row (no cascade runs that direction) — the person
+// can still sign in afterward, they just have no merchant until a new
+// signup, which is the safer default for "added by mistake" over also
+// nuking their login.
+export async function DELETE(_request: Request, { params }: { params: Promise<{ merchantId: string }> }) {
+  const auth = await requireSuperAdminApi()
+  if ('response' in auth) return auth.response
+
+  try {
+    const { merchantId } = await params
+    const service = createServiceRoleClient()
+    const { data: merchant } = await service
+      .from('merchants')
+      .select('id, business_name, is_super_admin')
+      .eq('id', merchantId)
+      .maybeSingle()
+
+    if (!merchant) {
+      return NextResponse.json({ error: 'Commerçant introuvable.' }, { status: 404 })
+    }
+    if (merchant.is_super_admin) {
+      return NextResponse.json({ error: 'Impossible de supprimer un compte administrateur depuis cet écran.' }, { status: 400 })
+    }
+
+    const { error } = await service.from('merchants').delete().eq('id', merchantId)
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    console.log(`[admin/merchants/:id] merchant deleted — ${merchant.business_name} (${merchantId})`)
+
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    console.error('[admin/merchants/:id] delete failed', err)
+    return NextResponse.json(
+      { error: 'Une erreur est survenue.', details: err instanceof Error ? err.message : String(err) },
+      { status: 500 }
+    )
+  }
+}

@@ -1,7 +1,7 @@
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { Card, CardContent } from '@/components/ui/card'
 import { AdminCard, AdminCardContent, AdminCardHeader, AdminCardTitle, AdminCardDescription } from '@/components/admin/admin-card'
-import { Badge } from '@/components/ui/badge'
+import { AdminBadge } from '@/components/admin/admin-badge'
 import { AdminTabs } from '@/components/admin/admin-tabs'
 import { SystemLogsTable } from '@/components/admin/system-logs-table'
 import type { SystemLog } from '@/types'
@@ -103,7 +103,7 @@ export default async function AdminLogsPage({
                                 {d.message_text}
                               </td>
                               <td className="px-4 py-3">
-                                <Badge variant={STATUS_VARIANT[d.status] ?? 'secondary'}>{d.status}</Badge>
+                                <AdminBadge variant={STATUS_VARIANT[d.status] ?? 'secondary'}>{d.status}</AdminBadge>
                                 {d.error_details && (
                                   <p className="mt-1 max-w-xs truncate text-xs text-red-400" title={d.error_details}>
                                     {d.error_details}

@@ -3,16 +3,29 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { AdminBadge } from '@/components/admin/admin-badge'
 import { AdminCard, AdminCardContent, AdminCardHeader, AdminCardTitle, AdminCardDescription, ADMIN_OUTLINE_BUTTON } from '@/components/admin/admin-card'
 import { Toast } from '@/components/dashboard/toast'
 import { useToast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
 import type { DunningEntry, CardExpiringEntry } from '@/lib/analytics/admin-finance'
 
 const DUNNING_LABELS: Record<DunningEntry['dunningStatus'], string> = {
   payment_failed: '❌ Prélèvement échoué',
   retry_1: '📩 1ère relance envoyée',
   suspended: '⛔ Accès suspendu',
+}
+
+const DUNNING_VARIANT: Record<DunningEntry['dunningStatus'], 'destructive' | 'warning'> = {
+  payment_failed: 'destructive',
+  retry_1: 'warning',
+  suspended: 'destructive',
+}
+
+const DUNNING_EDGE: Record<DunningEntry['dunningStatus'], string> = {
+  payment_failed: 'border-l-red-500',
+  retry_1: 'border-l-amber-500',
+  suspended: 'border-l-red-500',
 }
 
 export function DunningTable({
@@ -67,16 +80,19 @@ export function DunningTable({
             failedPayments.map((entry) => (
               <div
                 key={entry.merchantId}
-                className="flex flex-col gap-2 rounded-md border border-slate-800 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                className={cn(
+                  'flex flex-col gap-2 rounded-md border border-l-4 border-slate-800 px-4 py-3 sm:flex-row sm:items-center sm:justify-between',
+                  DUNNING_EDGE[entry.dunningStatus]
+                )}
               >
                 <div>
                   <p className="font-medium text-white">{entry.businessName}</p>
                   <p className="text-xs text-slate-400">{entry.ownerEmail ?? 'e-mail inconnu'}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant={entry.dunningStatus === 'suspended' ? 'destructive' : 'secondary'}>
+                  <AdminBadge variant={DUNNING_VARIANT[entry.dunningStatus]}>
                     {DUNNING_LABELS[entry.dunningStatus]}
-                  </Badge>
+                  </AdminBadge>
                   <Button
                     size="sm"
                     variant="outline"
@@ -122,7 +138,10 @@ export function DunningTable({
             <p className="text-sm text-slate-400">Aucune carte n’expire dans les 30 prochains jours.</p>
           ) : (
             cardsExpiringSoon.map((entry) => (
-              <div key={entry.merchantId} className="flex items-center justify-between rounded-md border border-slate-800 px-4 py-3">
+              <div
+                key={entry.merchantId}
+                className="flex items-center justify-between rounded-md border border-l-4 border-slate-800 border-l-amber-500 px-4 py-3"
+              >
                 <span className="font-medium text-white">{entry.businessName}</span>
                 <span className="text-sm text-amber-400">
                   Expire {String(entry.expMonth).padStart(2, '0')}/{entry.expYear}
