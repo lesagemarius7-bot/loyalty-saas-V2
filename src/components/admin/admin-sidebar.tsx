@@ -36,7 +36,7 @@ export function AdminSidebar({ businessName }: { businessName: string }) {
 
   return (
     <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-slate-800 bg-slate-950 p-4 text-slate-100">
-      <div className="flex items-center gap-2.5 px-2 py-3">
+      <Link href="/admin" className="flex items-center gap-2.5 rounded-md px-2 py-3 hover:bg-slate-800">
         {logoFailed ? (
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#453ee8] text-white">
             <ShieldCheck className="h-4.5 w-4.5" />
@@ -60,7 +60,7 @@ export function AdminSidebar({ businessName }: { businessName: string }) {
           <p className="truncate text-sm font-semibold">Administrateur</p>
           <p className="truncate text-xs text-slate-400">{businessName}</p>
         </div>
-      </div>
+      </Link>
 
       <nav className="flex-1 space-y-1 pt-4">
         {NAV_ITEMS.map((item) => {
