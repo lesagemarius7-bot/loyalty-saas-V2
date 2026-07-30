@@ -26,7 +26,7 @@ export default async function AdminLoginPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/images/logo-mark.png" alt="Loyalty" className="h-full w-full object-contain" />
           </span>
-          <h1 className="mt-4 text-xl font-bold text-white">👑 Espace Super Administrateur Loyalty</h1>
+          <h1 className="mt-4 text-xl font-bold text-white">Espace Administrateur Loyalty</h1>
           <p className="mt-1 text-sm text-slate-400">Réservé à l’équipe de gestion de la plateforme.</p>
         </div>
 

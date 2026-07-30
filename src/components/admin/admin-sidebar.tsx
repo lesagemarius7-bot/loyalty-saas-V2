@@ -3,13 +3,14 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, Store, ScrollText, LogOut, ArrowLeft, ShieldCheck } from 'lucide-react'
+import { LayoutDashboard, Store, ScrollText, LogOut, ShieldCheck, LineChart } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
   { href: '/admin', label: 'Vue d’ensemble', icon: LayoutDashboard, exact: true },
   { href: '/admin/merchants', label: 'Commerçants', icon: Store, exact: false },
+  { href: '/admin/finance', label: 'Finance', icon: LineChart, exact: false },
   { href: '/admin/logs', label: 'Journal des envois', icon: ScrollText, exact: false },
 ]
 
@@ -56,7 +57,7 @@ export function AdminSidebar({ businessName }: { businessName: string }) {
           </span>
         )}
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold">Super Admin</p>
+          <p className="truncate text-sm font-semibold">Administrateur</p>
           <p className="truncate text-xs text-slate-400">{businessName}</p>
         </div>
       </div>
@@ -80,13 +81,6 @@ export function AdminSidebar({ businessName }: { businessName: string }) {
         })}
       </nav>
 
-      <Link
-        href="/dashboard"
-        className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Mon dashboard
-      </Link>
       <button
         onClick={handleSignOut}
         className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800"

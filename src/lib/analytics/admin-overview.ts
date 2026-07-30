@@ -48,7 +48,7 @@ export async function computeAdminOverview(supabase: Client): Promise<AdminOverv
   ] = await Promise.all([
     supabase
       .from('merchants')
-      .select('id, business_name, created_at, approval_status, billing_status, subscription_plan')
+      .select('id, business_name, created_at, approval_status, billing_status, subscription_plan, is_super_admin')
       .order('created_at', { ascending: false }),
     supabase.from('loyalty_cards').select('id, apple_pass_updated_at, google_object_id'),
     supabase.from('transactions').select('type').gte('created_at', monthStart.toISOString()),
@@ -82,9 +82,10 @@ export async function computeAdminOverview(supabase: Client): Promise<AdminOverv
   // regardless of billing_status (a POC merchant is what they'd pay if/when
   // they convert at their currently-selected plan), not real billed Stripe
   // revenue. Pending/rejected requests are excluded — they aren't real
-  // customers yet and might never be.
+  // customers yet and might never be. Super admin shell accounts (the
+  // platform's own backoffice account) are excluded too — not real revenue.
   const projectedMrr = allMerchants
-    .filter((m) => m.approval_status === 'approved')
+    .filter((m) => m.approval_status === 'approved' && !m.is_super_admin)
     .reduce((sum, m) => {
       const plan = PLANS.find((p) => p.id === m.subscription_plan)
       return sum + (plan?.price ?? 0)

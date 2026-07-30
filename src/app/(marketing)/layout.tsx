@@ -34,7 +34,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
         <div className="container flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
           <span>© {new Date().getFullYear()} Loyalty. Tous droits réservés.</span>
           <Link href="/admin/login" className="text-xs text-muted-foreground/60 hover:text-muted-foreground">
-            👑 Accès Administration
+            Accès Administration
           </Link>
         </div>
       </footer>

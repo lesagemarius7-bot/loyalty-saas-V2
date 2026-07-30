@@ -57,7 +57,7 @@ export function LoginForm() {
       <Card>
         <CardHeader>
           <CardTitle>Où voulez-vous aller ?</CardTitle>
-          <CardDescription>Ce compte a aussi les droits Super Admin.</CardDescription>
+          <CardDescription>Ce compte a aussi les droits Administrateur.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <Button
@@ -77,7 +77,7 @@ export function LoginForm() {
               router.refresh()
             }}
           >
-            👑 Tableau de bord Admin
+            Tableau de bord Admin
           </Button>
         </CardContent>
       </Card>

@@ -35,7 +35,7 @@ export function AdminLoginForm() {
 
     if (!data.isSuperAdmin) {
       await supabase.auth.signOut()
-      setError("Accès refusé : ce compte n'a pas les droits Super Admin.")
+      setError("Accès refusé : ce compte n'a pas les droits d'administration.")
       setLoading(false)
       return
     }
