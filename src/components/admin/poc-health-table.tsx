@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { AdminCard, AdminCardContent, AdminCardHeader, AdminCardTitle, AdminCardDescription } from '@/components/admin/admin-card'
 import type { PocHealthEntry } from '@/lib/analytics/admin-finance'
 
 const SCORE_META: Record<PocHealthEntry['score'], { label: string; variant: 'success' | 'secondary' | 'destructive' }> = {
@@ -18,26 +18,26 @@ export function PocHealthTable({ entries }: { entries: PocHealthEntry[] }) {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="pb-2">
-          <CardDescription>🔮 Pipeline MRR pondéré (POC en cours)</CardDescription>
-          <CardTitle className="text-3xl">{weightedPipelineMrr} €</CardTitle>
-        </CardHeader>
-        <CardContent className="text-xs text-muted-foreground">
+      <AdminCard>
+        <AdminCardHeader className="pb-2">
+          <AdminCardDescription>🔮 Pipeline MRR pondéré (POC en cours)</AdminCardDescription>
+          <AdminCardTitle className="text-3xl">{weightedPipelineMrr} €</AdminCardTitle>
+        </AdminCardHeader>
+        <AdminCardContent className="text-xs text-slate-400">
           MRR potentiel × probabilité de conversion estimée par score (🟢 90% · 🟡 40% · 🔴 10%) — une hypothèse
           documentée, pas un taux observé (pas encore assez d’historique de conversions réelles).
-        </CardContent>
-      </Card>
+        </AdminCardContent>
+      </AdminCard>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Maturité des commerçants en essai</CardTitle>
-          <CardDescription>
+      <AdminCard>
+        <AdminCardHeader>
+          <AdminCardTitle className="text-base">Maturité des commerçants en essai</AdminCardTitle>
+          <AdminCardDescription>
             🟢 Fort : &gt;15 tampons + notifications configurées + Wallet installé. 🟡 Moyen : cas intermédiaires.
             🔴 Faible : aucune activité depuis plus de 7 jours.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
+          </AdminCardDescription>
+        </AdminCardHeader>
+        <AdminCardContent className="space-y-2">
           {sorted.length === 0 ? (
             <p className="text-sm text-slate-400">Aucun commerçant en POC actuellement.</p>
           ) : (
@@ -64,8 +64,8 @@ export function PocHealthTable({ entries }: { entries: PocHealthEntry[] }) {
               </Link>
             ))
           )}
-        </CardContent>
-      </Card>
+        </AdminCardContent>
+      </AdminCard>
     </div>
   )
 }

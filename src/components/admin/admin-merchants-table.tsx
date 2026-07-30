@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Eye, PlusCircle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { AdminCard, AdminCardContent, ADMIN_OUTLINE_BUTTON } from '@/components/admin/admin-card'
 import { Toast } from '@/components/dashboard/toast'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
@@ -26,23 +26,26 @@ function daysSince(iso: string): number {
   return Math.floor((Date.now() - new Date(iso).getTime()) / DAY_MS)
 }
 
+// Low-opacity saturated bg + light-toned text of the same hue — reads well
+// on the dark admin shell, unlike the light bg-X-100/text-X-800 pairs this
+// used to use (calibrated for a white page, illegible-ish on slate-900).
 function activityBadge(merchant: AdminMerchantSummary) {
   if (merchant.approvalStatus === 'pending') {
-    return { label: 'En attente de validation', className: 'bg-violet-100 text-violet-800' }
+    return { label: 'En attente de validation', className: 'bg-violet-500/20 text-violet-300' }
   }
   if (merchant.approvalStatus === 'rejected') {
-    return { label: 'Refusé', className: 'bg-red-100 text-red-800' }
+    return { label: 'Refusé', className: 'bg-red-500/20 text-red-300' }
   }
 
   const reference = merchant.lastActivityAt ?? merchant.createdAt
   const hours = (Date.now() - new Date(reference).getTime()) / (60 * 60 * 1000)
 
   if (merchant.billingStatus === 'poc_active' && merchant.pocDaysRemaining !== null) {
-    return { label: `POC actif — ${merchant.pocDaysRemaining}j restants`, className: 'bg-blue-100 text-blue-800' }
+    return { label: `POC actif — ${merchant.pocDaysRemaining}j restants`, className: 'bg-blue-500/20 text-blue-300' }
   }
-  if (hours < 48) return { label: 'En activité', className: 'bg-emerald-100 text-emerald-800' }
-  if (hours > 7 * 24) return { label: 'Inactif', className: 'bg-orange-100 text-orange-800' }
-  return { label: 'Actif', className: 'bg-emerald-100 text-emerald-800' }
+  if (hours < 48) return { label: 'En activité', className: 'bg-emerald-500/20 text-emerald-300' }
+  if (hours > 7 * 24) return { label: 'Inactif', className: 'bg-orange-500/20 text-orange-300' }
+  return { label: 'Actif', className: 'bg-emerald-500/20 text-emerald-300' }
 }
 
 export function AdminMerchantsTable({ merchants }: { merchants: AdminMerchantSummary[] }) {
@@ -82,7 +85,7 @@ export function AdminMerchantsTable({ merchants }: { merchants: AdminMerchantSum
   }
 
   return (
-    <>
+    <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
         {FILTERS.map((f) => (
           <button
@@ -91,7 +94,9 @@ export function AdminMerchantsTable({ merchants }: { merchants: AdminMerchantSum
             onClick={() => setFilter(f.key)}
             className={cn(
               'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-              filter === f.key ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-secondary'
+              filter === f.key
+                ? 'border-[#706af1] bg-[#453ee8]/10 text-[#a5a0f5]'
+                : 'border-slate-700 text-slate-300 hover:bg-slate-800'
             )}
           >
             {f.label}
@@ -99,11 +104,11 @@ export function AdminMerchantsTable({ merchants }: { merchants: AdminMerchantSum
         ))}
       </div>
 
-      <Card>
-        <CardContent className="w-full max-w-full overflow-x-auto p-0">
+      <AdminCard>
+        <AdminCardContent className="w-full max-w-full overflow-x-auto p-0">
           <table className="w-full min-w-[900px] text-sm">
             <thead>
-              <tr className="border-b border-border text-left text-muted-foreground">
+              <tr className="border-b border-slate-800 text-left text-slate-400">
                 <th className="px-4 py-3 font-medium">Enseigne</th>
                 <th className="px-4 py-3 font-medium">Gérant</th>
                 <th className="px-4 py-3 font-medium">Inscrit le</th>
@@ -118,15 +123,13 @@ export function AdminMerchantsTable({ merchants }: { merchants: AdminMerchantSum
               {filtered.map((m) => {
                 const badge = activityBadge(m)
                 return (
-                  <tr key={m.id} className="border-b border-border last:border-0">
-                    <td className="px-4 py-3 font-medium">{m.businessName}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{m.ownerEmail ?? '—'}</td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {new Date(m.createdAt).toLocaleDateString('fr-FR')}
-                    </td>
-                    <td className="px-4 py-3">{m.customerCount}</td>
-                    <td className="px-4 py-3">{m.walletCardCount}</td>
-                    <td className="px-4 py-3 text-muted-foreground">
+                  <tr key={m.id} className="border-b border-slate-800 last:border-0 hover:bg-white/[0.02]">
+                    <td className="px-4 py-3 font-medium text-slate-100">{m.businessName}</td>
+                    <td className="px-4 py-3 text-slate-400">{m.ownerEmail ?? '—'}</td>
+                    <td className="px-4 py-3 text-slate-400">{new Date(m.createdAt).toLocaleDateString('fr-FR')}</td>
+                    <td className="px-4 py-3 text-slate-200">{m.customerCount}</td>
+                    <td className="px-4 py-3 text-slate-200">{m.walletCardCount}</td>
+                    <td className="px-4 py-3 text-slate-400">
                       {m.lastActivityAt ? new Date(m.lastActivityAt).toLocaleDateString('fr-FR') : 'Jamais'}
                     </td>
                     <td className="px-4 py-3">
@@ -135,13 +138,19 @@ export function AdminMerchantsTable({ merchants }: { merchants: AdminMerchantSum
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-2">
                         <Link href={`/admin/merchants/${m.id}`}>
-                          <Button size="sm" variant="outline">
+                          <Button size="sm" variant="outline" className={ADMIN_OUTLINE_BUTTON}>
                             <Eye className="mr-1.5 h-3.5 w-3.5" />
                             Inspecter
                           </Button>
                         </Link>
                         {m.approvalStatus === 'approved' && (
-                          <Button size="sm" variant="outline" disabled={extendingId === m.id} onClick={() => extendPoc(m.id)}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className={ADMIN_OUTLINE_BUTTON}
+                            disabled={extendingId === m.id}
+                            onClick={() => extendPoc(m.id)}
+                          >
                             <PlusCircle className="mr-1.5 h-3.5 w-3.5" />
                             {extendingId === m.id ? '…' : 'Prolonger POC'}
                           </Button>
@@ -153,17 +162,17 @@ export function AdminMerchantsTable({ merchants }: { merchants: AdminMerchantSum
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-6 py-8 text-center text-muted-foreground">
+                  <td colSpan={8} className="px-6 py-8 text-center text-slate-400">
                     Aucun commerçant ne correspond à ce filtre.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
-        </CardContent>
-      </Card>
+        </AdminCardContent>
+      </AdminCard>
 
       {toast && <Toast variant={toast.variant} message={toast.message} onDismiss={dismiss} />}
-    </>
+    </div>
   )
 }

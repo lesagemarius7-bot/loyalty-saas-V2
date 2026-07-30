@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { AdminCard, AdminCardContent, AdminCardHeader, AdminCardTitle, AdminCardDescription, ADMIN_OUTLINE_BUTTON } from '@/components/admin/admin-card'
 import { Toast } from '@/components/dashboard/toast'
 import { useToast } from '@/hooks/use-toast'
 import type { DunningEntry, CardExpiringEntry } from '@/lib/analytics/admin-finance'
@@ -52,15 +52,15 @@ export function DunningTable({
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Prélèvements échoués & relances</CardTitle>
-          <CardDescription>
+      <AdminCard>
+        <AdminCardHeader>
+          <AdminCardTitle className="text-base">Prélèvements échoués & relances</AdminCardTitle>
+          <AdminCardDescription>
             Alimenté par les webhooks Stripe réels (invoice.payment_failed / payment_succeeded) — vide tant qu’aucun
             paiement Stripe réel n’a échoué.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
+          </AdminCardDescription>
+        </AdminCardHeader>
+        <AdminCardContent className="space-y-2">
           {failedPayments.length === 0 ? (
             <p className="text-sm text-slate-400">Aucun impayé en cours. 🎉</p>
           ) : (
@@ -80,6 +80,7 @@ export function DunningTable({
                   <Button
                     size="sm"
                     variant="outline"
+                    className={ADMIN_OUTLINE_BUTTON}
                     disabled={busyId === entry.merchantId || !entry.hasStripeCustomer || entry.dunningStatus === 'suspended'}
                     title={!entry.hasStripeCustomer ? "Pas de compte Stripe pour ce commerçant." : undefined}
                     onClick={() =>
@@ -102,19 +103,19 @@ export function DunningTable({
               </div>
             ))
           )}
-        </CardContent>
-      </Card>
+        </AdminCardContent>
+      </AdminCard>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Cartes bancaires expirant sous 30 jours</CardTitle>
-          <CardDescription>
+      <AdminCard>
+        <AdminCardHeader>
+          <AdminCardTitle className="text-base">Cartes bancaires expirant sous 30 jours</AdminCardTitle>
+          <AdminCardDescription>
             {stripeReachable
               ? 'Vérification en direct via l’API Stripe pour les commerçants ayant un compte Stripe.'
               : 'Vérification indisponible — Stripe n’est pas joignable (clé de production non configurée pour la facturation réelle).'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
+          </AdminCardDescription>
+        </AdminCardHeader>
+        <AdminCardContent className="space-y-2">
           {!stripeReachable ? (
             <p className="text-sm text-slate-400">—</p>
           ) : cardsExpiringSoon.length === 0 ? (
@@ -129,8 +130,8 @@ export function DunningTable({
               </div>
             ))
           )}
-        </CardContent>
-      </Card>
+        </AdminCardContent>
+      </AdminCard>
 
       {toast && <Toast variant={toast.variant} message={toast.message} onDismiss={dismiss} />}
     </div>

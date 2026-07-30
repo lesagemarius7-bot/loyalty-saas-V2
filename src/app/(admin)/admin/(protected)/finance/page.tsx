@@ -1,6 +1,6 @@
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { computeAdminFinance, computePocHealth, computeDunningData } from '@/lib/analytics/admin-finance'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { AdminCard, AdminCardContent, AdminCardDescription, AdminCardHeader, AdminCardTitle } from '@/components/admin/admin-card'
 import { AdminTabs } from '@/components/admin/admin-tabs'
 import { DunningTable } from '@/components/admin/dunning-table'
 import { PocHealthTable } from '@/components/admin/poc-health-table'
@@ -41,77 +41,77 @@ export default async function AdminFinancePage() {
             content: (
               <div className="space-y-6">
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardDescription>💰 MRR actuel</CardDescription>
-                      <CardTitle className="text-3xl">{finance.currentMrr} €</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-xs text-muted-foreground">
+                  <AdminCard>
+                    <AdminCardHeader className="pb-2">
+                      <AdminCardDescription>💰 MRR actuel</AdminCardDescription>
+                      <AdminCardTitle className="text-3xl">{finance.currentMrr} €</AdminCardTitle>
+                    </AdminCardHeader>
+                    <AdminCardContent className="text-xs text-slate-400">
                       {finance.activeSubscriptions} abonnement(s) payant(s) actif(s)
-                    </CardContent>
-                  </Card>
+                    </AdminCardContent>
+                  </AdminCard>
 
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardDescription>📈 ARR actuel</CardDescription>
-                      <CardTitle className="text-3xl">{finance.currentArr} €</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-xs text-muted-foreground">MRR actuel × 12</CardContent>
-                  </Card>
+                  <AdminCard>
+                    <AdminCardHeader className="pb-2">
+                      <AdminCardDescription>📈 ARR actuel</AdminCardDescription>
+                      <AdminCardTitle className="text-3xl">{finance.currentArr} €</AdminCardTitle>
+                    </AdminCardHeader>
+                    <AdminCardContent className="text-xs text-slate-400">MRR actuel × 12</AdminCardContent>
+                  </AdminCard>
 
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardDescription>👤 ARPU</CardDescription>
-                      <CardTitle className="text-3xl">{ue.arpu} €</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-xs text-muted-foreground">Panier moyen / commerçant payant</CardContent>
-                  </Card>
+                  <AdminCard>
+                    <AdminCardHeader className="pb-2">
+                      <AdminCardDescription>👤 ARPU</AdminCardDescription>
+                      <AdminCardTitle className="text-3xl">{ue.arpu} €</AdminCardTitle>
+                    </AdminCardHeader>
+                    <AdminCardContent className="text-xs text-slate-400">Panier moyen / commerçant payant</AdminCardContent>
+                  </AdminCard>
 
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardDescription>💎 LTV estimée</CardDescription>
-                      <CardTitle className="text-3xl">{ue.ltvEstimateEur !== null ? `${ue.ltvEstimateEur} €` : '—'}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-xs text-muted-foreground">
+                  <AdminCard>
+                    <AdminCardHeader className="pb-2">
+                      <AdminCardDescription>💎 LTV estimée</AdminCardDescription>
+                      <AdminCardTitle className="text-3xl">{ue.ltvEstimateEur !== null ? `${ue.ltvEstimateEur} €` : '—'}</AdminCardTitle>
+                    </AdminCardHeader>
+                    <AdminCardContent className="text-xs text-slate-400">
                       {ue.ltvEstimateEur !== null ? 'ARPU ÷ taux de churn logo' : 'Non calculable — pas de churn ce mois-ci'}
-                    </CardContent>
-                  </Card>
+                    </AdminCardContent>
+                  </AdminCard>
 
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardDescription>📉 Churn logo (ce mois)</CardDescription>
-                      <CardTitle className="text-3xl">{ue.logoChurnRatePct !== null ? `${ue.logoChurnRatePct}%` : '—'}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-xs text-muted-foreground">
+                  <AdminCard>
+                    <AdminCardHeader className="pb-2">
+                      <AdminCardDescription>📉 Churn logo (ce mois)</AdminCardDescription>
+                      <AdminCardTitle className="text-3xl">{ue.logoChurnRatePct !== null ? `${ue.logoChurnRatePct}%` : '—'}</AdminCardTitle>
+                    </AdminCardHeader>
+                    <AdminCardContent className="text-xs text-slate-400">
                       {ue.hasHistoricalData ? 'Basé sur les résiliations réelles enregistrées' : 'Aucun historique avant ce mois-ci'}
-                    </CardContent>
-                  </Card>
+                    </AdminCardContent>
+                  </AdminCard>
 
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardDescription>💸 Churn revenu (ce mois)</CardDescription>
-                      <CardTitle className="text-3xl">{ue.revenueChurnEurThisMonth} €</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-xs text-muted-foreground">MRR perdu sur résiliations réelles</CardContent>
-                  </Card>
+                  <AdminCard>
+                    <AdminCardHeader className="pb-2">
+                      <AdminCardDescription>💸 Churn revenu (ce mois)</AdminCardDescription>
+                      <AdminCardTitle className="text-3xl">{ue.revenueChurnEurThisMonth} €</AdminCardTitle>
+                    </AdminCardHeader>
+                    <AdminCardContent className="text-xs text-slate-400">MRR perdu sur résiliations réelles</AdminCardContent>
+                  </AdminCard>
 
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardDescription>🚀 Expansion MRR (ce mois)</CardDescription>
-                      <CardTitle className="text-3xl">+{ue.expansionMrrThisMonth} €</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-xs text-muted-foreground">Montées en gamme Essentiel → Performance IA</CardContent>
-                  </Card>
+                  <AdminCard>
+                    <AdminCardHeader className="pb-2">
+                      <AdminCardDescription>🚀 Expansion MRR (ce mois)</AdminCardDescription>
+                      <AdminCardTitle className="text-3xl">+{ue.expansionMrrThisMonth} €</AdminCardTitle>
+                    </AdminCardHeader>
+                    <AdminCardContent className="text-xs text-slate-400">Montées en gamme Essentiel → Performance IA</AdminCardContent>
+                  </AdminCard>
 
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardDescription>⚖️ Marge brute globale</CardDescription>
-                      <CardTitle className="text-3xl">{gm.grossMarginPct !== null ? `${gm.grossMarginPct}%` : '—'}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-xs text-muted-foreground">
+                  <AdminCard>
+                    <AdminCardHeader className="pb-2">
+                      <AdminCardDescription>⚖️ Marge brute globale</AdminCardDescription>
+                      <AdminCardTitle className="text-3xl">{gm.grossMarginPct !== null ? `${gm.grossMarginPct}%` : '—'}</AdminCardTitle>
+                    </AdminCardHeader>
+                    <AdminCardContent className="text-xs text-slate-400">
                       Coûts infra estimés : {gm.estimatedCogsEur} € (dont {gm.pushSentThisMonth} notifications push)
-                    </CardContent>
-                  </Card>
+                    </AdminCardContent>
+                  </AdminCard>
                 </div>
 
                 {!ue.hasHistoricalData && (
@@ -122,16 +122,16 @@ export default async function AdminFinancePage() {
                   </p>
                 )}
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Projection MRR — 6 prochains mois</CardTitle>
-                    <CardDescription>
+                <AdminCard>
+                  <AdminCardHeader>
+                    <AdminCardTitle className="text-base">Projection MRR — 6 prochains mois</AdminCardTitle>
+                    <AdminCardDescription>
                       Hypothèse : les abonnements actifs se maintiennent, et chaque commerçant en POC convertit à la
                       fin de son essai (date de début + durée du POC), au tarif du plan qu’il a choisi. Aucune
                       croissance ou perte de client future n’est inventée.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
+                    </AdminCardDescription>
+                  </AdminCardHeader>
+                  <AdminCardContent>
                     <div className="flex items-end gap-3 pt-2" style={{ height: 180 }}>
                       {finance.projection.map((month) => (
                         <div key={month.month} className="flex flex-1 flex-col items-center gap-2">
@@ -145,17 +145,17 @@ export default async function AdminFinancePage() {
                         </div>
                       ))}
                     </div>
-                  </CardContent>
-                </Card>
+                  </AdminCardContent>
+                </AdminCard>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Conversions POC attendues</CardTitle>
-                    <CardDescription>Détail des commerçants en essai et de leur bascule prévue en abonnement payant.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
+                <AdminCard>
+                  <AdminCardHeader>
+                    <AdminCardTitle className="text-base">Conversions POC attendues</AdminCardTitle>
+                    <AdminCardDescription>Détail des commerçants en essai et de leur bascule prévue en abonnement payant.</AdminCardDescription>
+                  </AdminCardHeader>
+                  <AdminCardContent className="space-y-2">
                     {finance.projection.every((m) => m.newlyConverted.length === 0) ? (
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-slate-400">
                         {finance.pocInProgress === 0
                           ? 'Aucun commerçant en POC actuellement.'
                           : 'Aucune conversion prévue dans les 6 prochains mois.'}
@@ -174,8 +174,8 @@ export default async function AdminFinancePage() {
                           </div>
                         ))
                     )}
-                  </CardContent>
-                </Card>
+                  </AdminCardContent>
+                </AdminCard>
               </div>
             ),
           },

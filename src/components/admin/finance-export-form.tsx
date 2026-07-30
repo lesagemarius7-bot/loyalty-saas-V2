@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { AdminCard, AdminCardContent, AdminCardHeader, AdminCardTitle, AdminCardDescription } from '@/components/admin/admin-card'
 import { buttonVariants } from '@/components/ui/button'
 
 function currentMonthValue() {
@@ -13,15 +13,15 @@ export function FinanceExportForm() {
   const [month, setMonth] = useState(currentMonthValue())
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Export comptable (CSV)</CardTitle>
-        <CardDescription>
+    <AdminCard>
+      <AdminCardHeader>
+        <AdminCardTitle className="text-base">Export comptable (CSV)</AdminCardTitle>
+        <AdminCardDescription>
           Ventilation HT / TVA / TTC des encaissements Stripe réels du mois choisi — compatible Pennylane, Dougs,
           QuickBooks, Indy. Vide tant qu’aucun paiement Stripe réel n’a été enregistré.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-wrap items-center gap-3">
+        </AdminCardDescription>
+      </AdminCardHeader>
+      <AdminCardContent className="flex flex-wrap items-center gap-3">
         <input
           type="month"
           value={month}
@@ -34,7 +34,7 @@ export function FinanceExportForm() {
         >
           📄 Télécharger le CSV
         </a>
-      </CardContent>
-    </Card>
+      </AdminCardContent>
+    </AdminCard>
   )
 }

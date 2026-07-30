@@ -1,5 +1,6 @@
 import { createServiceRoleClient } from '@/lib/supabase/server'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
+import { AdminCard, AdminCardContent, AdminCardHeader, AdminCardTitle, AdminCardDescription } from '@/components/admin/admin-card'
 import { Badge } from '@/components/ui/badge'
 import { AdminTabs } from '@/components/admin/admin-tabs'
 import { SystemLogsTable } from '@/components/admin/system-logs-table'
@@ -70,15 +71,15 @@ export default async function AdminLogsPage({
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Envois Wallet (Apple / Google)</CardTitle>
-                    <CardDescription>Un événement par (client, plateforme) et par envoi.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="w-full max-w-full overflow-x-auto p-0">
+                <AdminCard>
+                  <AdminCardHeader>
+                    <AdminCardTitle className="text-base">Envois Wallet (Apple / Google)</AdminCardTitle>
+                    <AdminCardDescription>Un événement par (client, plateforme) et par envoi.</AdminCardDescription>
+                  </AdminCardHeader>
+                  <AdminCardContent className="w-full max-w-full overflow-x-auto p-0">
                     <table className="w-full min-w-[720px] text-sm">
                       <thead>
-                        <tr className="border-b border-border text-left text-muted-foreground">
+                        <tr className="border-b border-slate-800 text-left text-slate-400">
                           <th className="px-4 py-3 font-medium">Commerçant</th>
                           <th className="px-4 py-3 font-medium">Plateforme</th>
                           <th className="px-4 py-3 font-medium">Message</th>
@@ -89,34 +90,34 @@ export default async function AdminLogsPage({
                       <tbody>
                         {!deliveries || deliveries.length === 0 ? (
                           <tr>
-                            <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
+                            <td colSpan={5} className="px-6 py-8 text-center text-slate-400">
                               Aucun envoi enregistré pour le moment.
                             </td>
                           </tr>
                         ) : (
                           deliveries.map((d) => (
-                            <tr key={d.id} className="border-b border-border last:border-0">
-                              <td className="px-4 py-3 font-medium">{d.merchant?.business_name ?? '—'}</td>
-                              <td className="px-4 py-3 capitalize text-muted-foreground">{d.platform}</td>
-                              <td className="px-4 py-3 max-w-xs truncate text-muted-foreground" title={d.message_text}>
+                            <tr key={d.id} className="border-b border-slate-800 last:border-0">
+                              <td className="px-4 py-3 font-medium text-slate-100">{d.merchant?.business_name ?? '—'}</td>
+                              <td className="px-4 py-3 capitalize text-slate-400">{d.platform}</td>
+                              <td className="px-4 py-3 max-w-xs truncate text-slate-400" title={d.message_text}>
                                 {d.message_text}
                               </td>
                               <td className="px-4 py-3">
                                 <Badge variant={STATUS_VARIANT[d.status] ?? 'secondary'}>{d.status}</Badge>
                                 {d.error_details && (
-                                  <p className="mt-1 max-w-xs truncate text-xs text-destructive" title={d.error_details}>
+                                  <p className="mt-1 max-w-xs truncate text-xs text-red-400" title={d.error_details}>
                                     {d.error_details}
                                   </p>
                                 )}
                               </td>
-                              <td className="px-4 py-3 text-muted-foreground">{new Date(d.sent_at).toLocaleString('fr-FR')}</td>
+                              <td className="px-4 py-3 text-slate-400">{new Date(d.sent_at).toLocaleString('fr-FR')}</td>
                             </tr>
                           ))
                         )}
                       </tbody>
                     </table>
-                  </CardContent>
-                </Card>
+                  </AdminCardContent>
+                </AdminCard>
               </div>
             ),
           },
@@ -124,15 +125,15 @@ export default async function AdminLogsPage({
             id: 'system',
             label: '🛠️ Logs techniques',
             content: (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Logs techniques</CardTitle>
-                  <CardDescription>
+              <AdminCard>
+                <AdminCardHeader>
+                  <AdminCardTitle className="text-base">Logs techniques</AdminCardTitle>
+                  <AdminCardDescription>
                     APNs, Google Wallet, Resend, Stripe, crons, webhooks — les 200 derniers événements. Une alerte
                     e-mail est envoyée automatiquement aux Super Admins pour chaque log de niveau critique.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
+                  </AdminCardDescription>
+                </AdminCardHeader>
+                <AdminCardContent className="space-y-4">
                   <form method="GET" className="flex flex-wrap items-end gap-3 border-b border-slate-800 pb-4">
                     <div className="space-y-1">
                       <label className="text-xs font-medium text-slate-400">Niveau</label>
@@ -188,8 +189,8 @@ export default async function AdminLogsPage({
                   </form>
 
                   <SystemLogsTable logs={systemLogs ?? []} />
-                </CardContent>
-              </Card>
+                </AdminCardContent>
+              </AdminCard>
             ),
           },
         ]}

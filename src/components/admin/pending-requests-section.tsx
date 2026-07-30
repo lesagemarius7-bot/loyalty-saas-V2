@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { AdminCard, AdminCardContent, AdminCardHeader, AdminCardTitle, AdminCardDescription, ADMIN_OUTLINE_BUTTON } from '@/components/admin/admin-card'
 import { Toast } from '@/components/dashboard/toast'
 import { useToast } from '@/hooks/use-toast'
 import type { AdminMerchantSummary } from '@/lib/analytics/admin-merchants-list'
@@ -41,26 +41,24 @@ export function PendingRequestsSection({ requests }: { requests: AdminMerchantSu
 
   return (
     <>
-      <Card className="border-primary/30 bg-primary/5">
-        <CardHeader>
-          <CardTitle className="text-base">📋 Demandes en attente ({requests.length})</CardTitle>
-          <CardDescription>Nouvelles inscriptions en attente de validation.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <AdminCard className="border-[#453ee8]/40 bg-[#453ee8]/10">
+        <AdminCardHeader>
+          <AdminCardTitle className="text-base">📋 Demandes en attente ({requests.length})</AdminCardTitle>
+          <AdminCardDescription>Nouvelles inscriptions en attente de validation.</AdminCardDescription>
+        </AdminCardHeader>
+        <AdminCardContent className="space-y-3">
           {requests.map((r) => (
             <div
               key={r.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-3"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-700 bg-slate-900/60 p-3"
             >
               <div>
-                <p className="text-sm font-semibold">{r.businessName}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm font-semibold text-slate-100">{r.businessName}</p>
+                <p className="text-xs text-slate-400">
                   {r.ownerName ?? 'Gérant inconnu'} · {r.ownerEmail ?? '—'}
                   {r.phone && ` · ${r.phone}`}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  Demandé le {new Date(r.createdAt).toLocaleDateString('fr-FR')}
-                </p>
+                <p className="text-xs text-slate-400">Demandé le {new Date(r.createdAt).toLocaleDateString('fr-FR')}</p>
               </div>
               <div className="flex items-center gap-2">
                 <Button size="sm" disabled={busyId === r.id} onClick={() => handle(r.id, 'approve')}>
@@ -70,6 +68,7 @@ export function PendingRequestsSection({ requests }: { requests: AdminMerchantSu
                 <Button
                   size="sm"
                   variant="outline"
+                  className={ADMIN_OUTLINE_BUTTON}
                   disabled={busyId === r.id}
                   onClick={() => handle(r.id, 'reject')}
                 >
@@ -79,8 +78,8 @@ export function PendingRequestsSection({ requests }: { requests: AdminMerchantSu
               </div>
             </div>
           ))}
-        </CardContent>
-      </Card>
+        </AdminCardContent>
+      </AdminCard>
 
       {toast && <Toast variant={toast.variant} message={toast.message} onDismiss={dismiss} />}
     </>
