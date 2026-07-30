@@ -57,3 +57,20 @@ export async function requireSuperAdminApi(): Promise<{ merchant: Merchant } | {
   }
   return { merchant }
 }
+
+// Used by the signup route to send the new-request alert to every real
+// super admin — not a single hardcoded "admin@..." address, so it keeps
+// working if a second admin account is ever added, and doesn't silently
+// stop working if the one admin's email changes.
+export async function getSuperAdminEmails(): Promise<string[]> {
+  const service = createServiceRoleClient()
+  const { data: admins } = await service.from('merchants').select('owner_id').eq('is_super_admin', true)
+  if (!admins || admins.length === 0) return []
+
+  const emails: string[] = []
+  for (const admin of admins) {
+    const { data } = await service.auth.admin.getUserById(admin.owner_id)
+    if (data.user?.email) emails.push(data.user.email)
+  }
+  return emails
+}

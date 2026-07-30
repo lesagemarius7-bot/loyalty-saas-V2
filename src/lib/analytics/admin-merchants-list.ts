@@ -6,8 +6,11 @@ type Client = SupabaseClient<Database>
 export interface AdminMerchantSummary {
   id: string
   businessName: string
+  ownerName: string | null
   ownerEmail: string | null
+  phone: string | null
   createdAt: string
+  approvalStatus: 'pending' | 'approved' | 'rejected'
   billingStatus: 'poc_active' | 'active' | 'past_due' | 'canceled'
   subscriptionPlan: string
   pocDaysRemaining: number | null
@@ -29,7 +32,9 @@ export async function listAdminMerchants(supabase: Client): Promise<AdminMerchan
     await Promise.all([
       supabase
         .from('merchants')
-        .select('id, owner_id, business_name, created_at, poc_start_date, poc_duration_days, billing_status, subscription_plan')
+        .select(
+          'id, owner_id, business_name, owner_name, phone, created_at, approval_status, poc_start_date, poc_duration_days, billing_status, subscription_plan'
+        )
         .order('created_at', { ascending: false }),
       supabase.from('customers').select('merchant_id'),
       supabase.from('loyalty_cards').select('merchant_id, apple_pass_updated_at, google_object_id, last_visit_at'),
@@ -67,8 +72,11 @@ export async function listAdminMerchants(supabase: Client): Promise<AdminMerchan
     return {
       id: m.id,
       businessName: m.business_name,
+      ownerName: m.owner_name,
       ownerEmail: emailByUserId.get(m.owner_id) ?? null,
+      phone: m.phone,
       createdAt: m.created_at,
+      approvalStatus: m.approval_status,
       billingStatus: m.billing_status,
       subscriptionPlan: m.subscription_plan,
       pocDaysRemaining,

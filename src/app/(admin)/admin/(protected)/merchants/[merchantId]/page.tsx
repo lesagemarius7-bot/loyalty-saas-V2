@@ -13,6 +13,12 @@ const BILLING_STATUS_LABELS: Record<string, string> = {
   canceled: 'Suspendu / résilié',
 }
 
+const APPROVAL_STATUS_LABELS: Record<string, string> = {
+  pending: 'En attente de validation',
+  approved: 'Approuvé',
+  rejected: 'Refusé',
+}
+
 export default async function AdminMerchantDetailPage({ params }: { params: Promise<{ merchantId: string }> }) {
   const { merchantId } = await params
   const service = createServiceRoleClient()
@@ -44,6 +50,11 @@ export default async function AdminMerchantDetailPage({ params }: { params: Prom
           {owner?.email ?? 'e-mail inconnu'} · Inscrit le {new Date(merchant.created_at).toLocaleDateString('fr-FR')}
         </p>
         <div className="mt-2 flex items-center gap-2">
+          {merchant.approval_status !== 'approved' && (
+            <Badge variant={merchant.approval_status === 'rejected' ? 'destructive' : 'secondary'}>
+              {APPROVAL_STATUS_LABELS[merchant.approval_status] ?? merchant.approval_status}
+            </Badge>
+          )}
           <Badge variant={merchant.billing_status === 'active' ? 'success' : 'secondary'}>
             {BILLING_STATUS_LABELS[merchant.billing_status] ?? merchant.billing_status}
           </Badge>

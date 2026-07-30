@@ -11,7 +11,9 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 export default function SignupPage() {
   const router = useRouter()
   const [businessName, setBusinessName] = useState('')
+  const [ownerName, setOwnerName] = useState('')
   const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -26,7 +28,7 @@ export default function SignupPage() {
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ businessName, email, password }),
+        body: JSON.stringify({ businessName, ownerName, email, phone: phone || undefined, password }),
       })
       const data = await res.json()
 
@@ -69,7 +71,9 @@ export default function SignupPage() {
       <form onSubmit={handleSubmit}>
         <CardHeader>
           <CardTitle>Créer votre compte</CardTitle>
-          <CardDescription>14 jours d’essai gratuit, sans carte bancaire.</CardDescription>
+          <CardDescription>
+            1 mois d’essai gratuit, sans carte bancaire — après validation de votre demande par notre équipe.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Input
@@ -79,11 +83,23 @@ export default function SignupPage() {
             required
           />
           <Input
+            placeholder="Votre nom (gérant)"
+            value={ownerName}
+            onChange={(e) => setOwnerName(e.target.value)}
+            required
+          />
+          <Input
             type="email"
             placeholder="vous@commerce.fr"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+          />
+          <Input
+            type="tel"
+            placeholder="Téléphone (optionnel)"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
           />
           <PasswordInput
             placeholder="Mot de passe"

@@ -31,6 +31,9 @@ type MerchantRow = {
   billing_status: 'poc_active' | 'active' | 'past_due' | 'canceled'
   api_key: string
   is_super_admin: boolean
+  approval_status: 'pending' | 'approved' | 'rejected'
+  phone: string | null
+  owner_name: string | null
   created_at: string
   updated_at: string
 }

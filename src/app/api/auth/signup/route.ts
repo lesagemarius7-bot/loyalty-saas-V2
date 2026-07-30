@@ -1,10 +1,17 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server'
+import { getSuperAdminEmails } from '@/lib/auth/admin-guard'
+import { isEmailConfigured, sendEmail } from '@/lib/email/resend'
+import { newSignupAdminAlertEmail } from '@/lib/email/approval-emails'
+
+const FALLBACK_APP_URL = 'https://loyaltyapp.click'
 
 const bodySchema = z.object({
   businessName: z.string().trim().min(1).max(120),
+  ownerName: z.string().trim().min(1).max(120),
   email: z.string().email(),
+  phone: z.string().trim().max(30).optional(),
   password: z.string().min(8),
 })
 
@@ -30,13 +37,19 @@ function slugify(value: string) {
 // this sidesteps RLS entirely for the one write that legitimately needs to
 // bypass it: creating a merchant row for a user who was just authenticated
 // in this same request, using their own real id — never client-supplied.
+//
+// New merchants now land in approval_status = 'pending' — the dashboard
+// layout gate (see (dashboard)/dashboard/layout.tsx) blocks them from the
+// real dashboard until a super admin approves. This route's job stops at
+// creating the pending row and alerting every real super admin; the actual
+// gate lives in the layout, not here.
 export async function POST(request: Request) {
   try {
     const parsed = bodySchema.safeParse(await request.json())
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
     }
-    const { businessName, email, password } = parsed.data
+    const { businessName, ownerName, email, phone, password } = parsed.data
 
     // Session-aware client so a successful signUp sets real auth cookies on
     // the response — the browser ends up logged in exactly as if it had
@@ -52,7 +65,15 @@ export async function POST(request: Request) {
 
     const { data: merchant, error: merchantError } = await service
       .from('merchants')
-      .insert({ owner_id: signUpData.user.id, business_name: businessName, slug: slugify(businessName) })
+      .insert({
+        owner_id: signUpData.user.id,
+        business_name: businessName,
+        slug: slugify(businessName),
+        owner_name: ownerName,
+        phone: phone || null,
+        approval_status: 'pending',
+        poc_duration_days: 30,
+      })
       .select('id')
       .single()
 
@@ -66,6 +87,30 @@ export async function POST(request: Request) {
     const { error: programError } = await service.from('loyalty_programs').insert({ merchant_id: merchant.id })
     if (programError) {
       console.error('[auth/signup] failed to create default loyalty program', programError)
+    }
+
+    // Best-effort — a merchant's pending request must not be lost just
+    // because the alert email failed to send. They can still be found and
+    // approved manually via /admin/merchants either way.
+    if (isEmailConfigured()) {
+      try {
+        const superAdminEmails = await getSuperAdminEmails()
+        if (superAdminEmails.length > 0) {
+          const reviewUrl = `${process.env.NEXT_PUBLIC_APP_URL || FALLBACK_APP_URL}/admin/merchants`
+          const { subject, html, text } = newSignupAdminAlertEmail({
+            businessName,
+            ownerName,
+            email,
+            phone: phone || null,
+            reviewUrl,
+          })
+          await Promise.all(superAdminEmails.map((to) => sendEmail({ to, subject, html, text })))
+        } else {
+          console.error('[auth/signup] no super admin found to alert')
+        }
+      } catch (err) {
+        console.error('[auth/signup] failed to send admin alert email', err)
+      }
     }
 
     // No session means email confirmation is required on this project — the

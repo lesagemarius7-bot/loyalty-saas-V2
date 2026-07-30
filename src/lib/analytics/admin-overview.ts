@@ -14,6 +14,7 @@ export interface AdminOverview {
     active: number
     pocActive: number
     suspended: number
+    pendingRequests: number
   }
   walletPasses: { total: number }
   engagement: { stampsThisMonth: number; rewardsThisMonth: number }
@@ -47,7 +48,7 @@ export async function computeAdminOverview(supabase: Client): Promise<AdminOverv
   ] = await Promise.all([
     supabase
       .from('merchants')
-      .select('id, business_name, created_at, billing_status, subscription_plan')
+      .select('id, business_name, created_at, approval_status, billing_status, subscription_plan')
       .order('created_at', { ascending: false }),
     supabase.from('loyalty_cards').select('id, apple_pass_updated_at, google_object_id'),
     supabase.from('transactions').select('type').gte('created_at', monthStart.toISOString()),
@@ -64,6 +65,7 @@ export async function computeAdminOverview(supabase: Client): Promise<AdminOverv
   const active = allMerchants.filter((m) => m.billing_status === 'active').length
   const pocActive = allMerchants.filter((m) => m.billing_status === 'poc_active').length
   const suspended = allMerchants.filter((m) => m.billing_status === 'past_due' || m.billing_status === 'canceled').length
+  const pendingRequests = allMerchants.filter((m) => m.approval_status === 'pending').length
 
   const walletTotal = (walletCards ?? []).filter((c) => c.apple_pass_updated_at !== null || c.google_object_id !== null).length
 
@@ -76,13 +78,17 @@ export async function computeAdminOverview(supabase: Client): Promise<AdminOverv
   const pushSuccess = allDeliveries.filter((d) => d.status === 'success').length
   const pushSuccessRatePct = pushAttempted > 0 ? Math.round((pushSuccess / pushAttempted) * 100) : null
 
-  // "Projeté" — sum of each merchant's assigned plan price, regardless of
-  // billing_status (a POC merchant is what they'd pay if/when they convert
-  // at their currently-selected plan), not real billed Stripe revenue.
-  const projectedMrr = allMerchants.reduce((sum, m) => {
-    const plan = PLANS.find((p) => p.id === m.subscription_plan)
-    return sum + (plan?.price ?? 0)
-  }, 0)
+  // "Projeté" — sum of each APPROVED merchant's assigned plan price,
+  // regardless of billing_status (a POC merchant is what they'd pay if/when
+  // they convert at their currently-selected plan), not real billed Stripe
+  // revenue. Pending/rejected requests are excluded — they aren't real
+  // customers yet and might never be.
+  const projectedMrr = allMerchants
+    .filter((m) => m.approval_status === 'approved')
+    .reduce((sum, m) => {
+      const plan = PLANS.find((p) => p.id === m.subscription_plan)
+      return sum + (plan?.price ?? 0)
+    }, 0)
 
   const recentSignups = allMerchants.slice(0, 5).map((m) => ({
     id: m.id,
@@ -92,7 +98,7 @@ export async function computeAdminOverview(supabase: Client): Promise<AdminOverv
   }))
 
   return {
-    merchants: { total, active, pocActive, suspended },
+    merchants: { total, active, pocActive, suspended, pendingRequests },
     walletPasses: { total: walletTotal },
     engagement: { stampsThisMonth, rewardsThisMonth },
     deliverability: { pushSuccessRatePct, pushAttempted, emailSuccessRatePct: null },

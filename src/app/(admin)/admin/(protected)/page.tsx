@@ -22,6 +22,18 @@ export default async function AdminOverviewPage() {
         <p className="text-slate-400">Activité globale de la plateforme Loyalty, tous commerçants confondus.</p>
       </div>
 
+      {overview.merchants.pendingRequests > 0 && (
+        <Link
+          href="/admin/merchants"
+          className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-6 py-4 hover:bg-primary/10"
+        >
+          <span className="text-sm font-medium">
+            📋 {overview.merchants.pendingRequests} demande(s) d’accès en attente de validation
+          </span>
+          <span className="text-sm font-medium text-primary">Examiner →</span>
+        </Link>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
@@ -29,7 +41,8 @@ export default async function AdminOverviewPage() {
             <CardTitle className="text-3xl">{overview.merchants.total}</CardTitle>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground">
-            {overview.merchants.active} actif(s) · {overview.merchants.pocActive} en essai · {overview.merchants.suspended} suspendu(s)
+            {overview.merchants.active} actif(s) · {overview.merchants.pocActive} en essai ·{' '}
+            {overview.merchants.suspended} suspendu(s) · {overview.merchants.pendingRequests} en attente
           </CardContent>
         </Card>
 

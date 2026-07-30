@@ -3,7 +3,11 @@ import { z } from 'zod'
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { requireSuperAdminApi } from '@/lib/auth/admin-guard'
 import { PLANS, type PlanId } from '@/lib/billing/plans'
+import { isEmailConfigured, sendEmail } from '@/lib/email/resend'
+import { merchantApprovedEmail } from '@/lib/email/approval-emails'
 import type { Merchant } from '@/types'
+
+const FALLBACK_APP_URL = 'https://loyaltyapp.click'
 
 const PLAN_IDS = PLANS.map((p) => p.id) as [PlanId, ...PlanId[]]
 
@@ -15,6 +19,8 @@ const bodySchema = z.discriminatedUnion('action', [
   // maps directly. Mapped explicitly below rather than writing a
   // non-existent enum value.
   z.object({ action: z.literal('toggle_status'), status: z.enum(['active', 'suspended']) }),
+  z.object({ action: z.literal('approve') }),
+  z.object({ action: z.literal('reject') }),
 ])
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ merchantId: string }> }) {
@@ -29,11 +35,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ me
     }
 
     const service = createServiceRoleClient()
-    const { data: merchant } = await service
-      .from('merchants')
-      .select('id, poc_duration_days')
-      .eq('id', merchantId)
-      .maybeSingle()
+    const { data: merchant } = await service.from('merchants').select('*').eq('id', merchantId).maybeSingle<Merchant>()
 
     if (!merchant) {
       return NextResponse.json({ error: 'Commerçant introuvable.' }, { status: 404 })
@@ -50,11 +52,42 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ me
       case 'toggle_status':
         update = { billing_status: parsed.data.status === 'active' ? 'active' : 'canceled' }
         break
+      case 'approve':
+        update = {
+          approval_status: 'approved',
+          billing_status: 'poc_active',
+          poc_start_date: new Date().toISOString(),
+          poc_duration_days: 30,
+        }
+        break
+      case 'reject':
+        update = { approval_status: 'rejected' }
+        break
     }
 
     const { error } = await service.from('merchants').update(update).eq('id', merchantId)
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    // Best-effort — the merchant is already approved in the DB regardless
+    // of whether this email goes out; they aren't left in limbo if Resend
+    // hiccups.
+    if (parsed.data.action === 'approve' && isEmailConfigured()) {
+      try {
+        const { data: ownerData } = await service.auth.admin.getUserById(merchant.owner_id)
+        if (ownerData.user?.email) {
+          const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL || FALLBACK_APP_URL}/dashboard`
+          const { subject, html, text } = merchantApprovedEmail({
+            businessName: merchant.business_name,
+            dashboardUrl,
+            pocDurationDays: 30,
+          })
+          await sendEmail({ to: ownerData.user.email, subject, html, text })
+        }
+      } catch (err) {
+        console.error('[admin/merchants/:id] failed to send approval email', err)
+      }
     }
 
     return NextResponse.json({ ok: true })

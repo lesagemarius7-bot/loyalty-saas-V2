@@ -38,10 +38,34 @@ export function MerchantAdminActions({ merchant }: { merchant: Merchant }) {
   }
 
   const isSuspended = merchant.billing_status === 'canceled'
+  const isPending = merchant.approval_status === 'pending'
 
   return (
     <>
-      <Card>
+      {isPending && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="text-base">Demande en attente</CardTitle>
+          </CardHeader>
+          <CardContent className="flex gap-2">
+            <Button
+              disabled={busy}
+              onClick={() => runAction({ action: 'approve' }, '✅ Accès activé — POC de 30 jours démarré, e-mail envoyé.')}
+            >
+              Accepter l’accès (POC 1 mois)
+            </Button>
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() => runAction({ action: 'reject' }, '❌ Demande refusée.')}
+            >
+              Refuser
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card className={isPending ? 'opacity-50' : undefined}>
         <CardHeader>
           <CardTitle className="text-base">Actions admin</CardTitle>
         </CardHeader>
@@ -51,7 +75,7 @@ export function MerchantAdminActions({ merchant }: { merchant: Merchant }) {
             <Button
               size="sm"
               variant="outline"
-              disabled={busy}
+              disabled={busy || isPending}
               onClick={() => runAction({ action: 'extend_poc', extraDays: 30 }, '✅ POC prolongé de 30 jours.')}
             >
               + 30 jours
@@ -64,7 +88,7 @@ export function MerchantAdminActions({ merchant }: { merchant: Merchant }) {
               <select
                 value={plan}
                 onChange={(e) => setPlan(e.target.value as typeof plan)}
-                disabled={busy}
+                disabled={busy || isPending}
                 className="rounded-md border border-border bg-background px-2 py-1.5 text-sm"
               >
                 {PLANS.map((p) => (
@@ -76,7 +100,7 @@ export function MerchantAdminActions({ merchant }: { merchant: Merchant }) {
               <Button
                 size="sm"
                 variant="outline"
-                disabled={busy || plan === merchant.subscription_plan}
+                disabled={busy || isPending || plan === merchant.subscription_plan}
                 onClick={() => runAction({ action: 'change_plan', plan }, '✅ Formule mise à jour.')}
               >
                 Appliquer
@@ -89,7 +113,7 @@ export function MerchantAdminActions({ merchant }: { merchant: Merchant }) {
             <Button
               size="sm"
               variant={isSuspended ? 'default' : 'destructive'}
-              disabled={busy}
+              disabled={busy || isPending}
               onClick={() =>
                 runAction(
                   { action: 'toggle_status', status: isSuspended ? 'active' : 'suspended' },

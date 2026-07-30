@@ -27,6 +27,13 @@ function daysSince(iso: string): number {
 }
 
 function activityBadge(merchant: AdminMerchantSummary) {
+  if (merchant.approvalStatus === 'pending') {
+    return { label: 'En attente de validation', className: 'bg-violet-100 text-violet-800' }
+  }
+  if (merchant.approvalStatus === 'rejected') {
+    return { label: 'Refusé', className: 'bg-red-100 text-red-800' }
+  }
+
   const reference = merchant.lastActivityAt ?? merchant.createdAt
   const hours = (Date.now() - new Date(reference).getTime()) / (60 * 60 * 1000)
 
@@ -133,10 +140,12 @@ export function AdminMerchantsTable({ merchants }: { merchants: AdminMerchantSum
                             Inspecter
                           </Button>
                         </Link>
-                        <Button size="sm" variant="outline" disabled={extendingId === m.id} onClick={() => extendPoc(m.id)}>
-                          <PlusCircle className="mr-1.5 h-3.5 w-3.5" />
-                          {extendingId === m.id ? '…' : 'Prolonger POC'}
-                        </Button>
+                        {m.approvalStatus === 'approved' && (
+                          <Button size="sm" variant="outline" disabled={extendingId === m.id} onClick={() => extendPoc(m.id)}>
+                            <PlusCircle className="mr-1.5 h-3.5 w-3.5" />
+                            {extendingId === m.id ? '…' : 'Prolonger POC'}
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>

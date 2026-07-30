@@ -44,4 +44,8 @@ export const PLANS: PlanDefinition[] = [
   },
 ]
 
-export const POC_DURATION_DAYS = 60
+// Standardized on 1 month — was 60 (2 months) here while the DB default
+// was also 60 but the signup page's own copy said "14 jours", none of
+// which agreed with each other. Migration 0018 changes the DB default to
+// match.
+export const POC_DURATION_DAYS = 30
