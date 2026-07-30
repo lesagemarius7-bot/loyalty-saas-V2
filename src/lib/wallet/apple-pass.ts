@@ -171,6 +171,14 @@ export async function generateAppleLoyaltyPass(
     pass.backFields.push({ key: 'terms', label: 'Conditions', value: program.back_terms })
   }
 
+  // Real, per-customer suggestion computed from actual basket data (see
+  // computeNextBestItem in lib/customers/next-best-item.ts) — absent
+  // entirely (not a placeholder) until there's enough real line-item
+  // history for this merchant to say anything meaningful.
+  if (card.next_best_item_message) {
+    pass.backFields.push({ key: 'nextBestItem', label: 'Suggestion pour vous', value: card.next_best_item_message })
+  }
+
   // Persists past the lock-screen push disappearing — a customer can open
   // Wallet days later and still see what's currently active, one field with
   // up to 3 lines rather than 3 separate sparse fields.

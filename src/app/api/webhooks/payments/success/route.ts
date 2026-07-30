@@ -4,6 +4,14 @@ import { createServiceRoleClient } from '@/lib/supabase/server'
 import { processPaymentSuccess } from '@/lib/payments/process-payment-success'
 import { logSystemEvent } from '@/lib/logging/system-log'
 
+const lineItemSchema = z.object({
+  sku: z.string().min(1),
+  name: z.string().min(1),
+  quantity: z.coerce.number().int().positive().default(1),
+  price: z.coerce.number().nonnegative().default(0),
+  category: z.string().optional(),
+})
+
 const bodySchema = z
   .object({
     merchant_api_key: z.string().min(1).optional(),
@@ -12,6 +20,11 @@ const bodySchema = z
     customer_name: z.string().min(1),
     transaction_amount: z.coerce.number().nonnegative().optional(),
     purchased_category: z.string().optional(),
+    // Deep basket data (Priorité 2 roadmap) — one line per article, used to
+    // derive favorite_sku, total_lifetime_spent, and a real "next best
+    // item" nudge on the Wallet pass. Entirely optional: a POS that only
+    // sends transaction_amount keeps working exactly as before.
+    items: z.array(lineItemSchema).optional(),
   })
   .refine((data) => data.customer_email || data.customer_phone, {
     message: 'customer_email ou customer_phone requis',
@@ -55,6 +68,7 @@ export async function POST(request: Request) {
       customerName: parsed.data.customer_name,
       transactionAmount: parsed.data.transaction_amount,
       purchasedCategory: parsed.data.purchased_category,
+      items: parsed.data.items,
     })
 
     if (result.errors.length > 0) {

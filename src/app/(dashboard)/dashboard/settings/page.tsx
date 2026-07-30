@@ -4,21 +4,13 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { DashboardErrorFallback } from '@/components/dashboard/dashboard-error-fallback'
 import { MerchantCityForm } from '@/components/dashboard/merchant-city-form'
 import { MerchantAvgBasketForm } from '@/components/dashboard/merchant-avg-basket-form'
-import { AutoSendOnPaymentCard } from '@/components/dashboard/settings/auto-send-on-payment-card'
+import { PlvKitCard } from '@/components/dashboard/settings/plv-kit-card'
 
 export default async function SettingsPage() {
-  const { merchant, dataClient: supabase } = await getCurrentMerchant()
+  const { merchant } = await getCurrentMerchant()
 
   try {
     const enrollmentUrl = `${process.env.NEXT_PUBLIC_APP_URL}/join/${merchant.slug}`
-
-    const { data: program } = await supabase
-      .from('loyalty_programs')
-      .select('auto_send_on_payment_enabled, auto_send_channel')
-      .eq('merchant_id', merchant.id)
-      .eq('is_active', true)
-      .limit(1)
-      .maybeSingle()
 
     return (
       <div className="max-w-lg space-y-6">
@@ -28,6 +20,10 @@ export default async function SettingsPage() {
             Le logo, les couleurs et le rendu de la carte se règlent depuis{' '}
             <Link href="/dashboard/card-design" className="text-primary underline">
               Design de la carte
+            </Link>
+            . La clé API et le webhook de paiement se gèrent depuis{' '}
+            <Link href="/dashboard/integrations" className="text-primary underline">
+              Intégrations
             </Link>
             .
           </p>
@@ -51,7 +47,11 @@ export default async function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <MerchantCityForm merchantId={merchant.id} initialCity={merchant.city} />
+            <MerchantCityForm
+              merchantId={merchant.id}
+              initialCity={merchant.city}
+              initialWeatherTriggerEnabled={merchant.weather_trigger_enabled}
+            />
           </CardContent>
         </Card>
 
@@ -67,11 +67,7 @@ export default async function SettingsPage() {
           </CardContent>
         </Card>
 
-        <AutoSendOnPaymentCard
-          apiKey={merchant.api_key}
-          initialEnabled={program?.auto_send_on_payment_enabled}
-          initialChannel={program?.auto_send_channel}
-        />
+        <PlvKitCard />
       </div>
     )
   } catch (err) {

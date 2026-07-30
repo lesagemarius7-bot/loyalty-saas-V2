@@ -3,6 +3,7 @@ import type { Database } from '@/types/database.types'
 import { isEmailConfigured, sendEmail } from '@/lib/email/resend'
 import { loyaltyCardReadyEmail } from '@/lib/email/templates'
 import { applyPurchasedCategory } from '@/lib/customers/purchase-habits'
+import { computeNextBestItem, computeFavoriteSku } from '@/lib/customers/next-best-item'
 import { logSystemEvent } from '@/lib/logging/system-log'
 
 type Client = SupabaseClient<Database>
@@ -13,12 +14,36 @@ type Client = SupabaseClient<Database>
 // sent from, for the same reason as that route.
 const FALLBACK_APP_URL = 'https://loyaltyapp.click'
 
+export interface PaymentLineItemInput {
+  sku: string
+  name: string
+  quantity: number
+  price: number
+  category?: string
+}
+
 export interface PaymentSuccessInput {
   customerEmail?: string
   customerPhone?: string
   customerName: string
   transactionAmount?: number
   purchasedCategory?: string
+  items?: PaymentLineItemInput[]
+}
+
+// The category with the highest total quantity across the basket — used as
+// the purchasedCategory signal when the caller sends structured items[]
+// instead of (or in addition to) the flat purchased_category field. Items
+// are more granular/reliable than a single flat string, so they take
+// precedence when both are present.
+function dominantCategoryFromItems(items: PaymentLineItemInput[]): string | undefined {
+  const counts = new Map<string, number>()
+  for (const item of items) {
+    if (!item.category) continue
+    counts.set(item.category, (counts.get(item.category) ?? 0) + item.quantity)
+  }
+  if (counts.size === 0) return undefined
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]![0]
 }
 
 export interface PaymentSuccessResult {
@@ -123,25 +148,81 @@ export async function processPaymentSuccess(supabase: Client, merchantId: string
   }
 
   let pointsEarned = 0
+  let transactionId: string | null = null
   if (input.transactionAmount && input.transactionAmount > 0) {
     pointsEarned = Math.round(input.transactionAmount * program.points_per_euro)
     if (pointsEarned > 0) {
-      const { error: txError } = await supabase.from('transactions').insert({
-        merchant_id: merchantId,
-        card_id: cardId,
-        type: 'earn',
-        points_delta: pointsEarned,
-        note: input.purchasedCategory ? `Paiement en caisse — ${input.purchasedCategory}` : 'Paiement en caisse',
-      })
+      const { data: tx, error: txError } = await supabase
+        .from('transactions')
+        .insert({
+          merchant_id: merchantId,
+          card_id: cardId,
+          type: 'earn',
+          points_delta: pointsEarned,
+          note: input.purchasedCategory ? `Paiement en caisse — ${input.purchasedCategory}` : 'Paiement en caisse',
+        })
+        .select('id')
+        .single()
       if (txError) {
         console.error('[process-payment-success] failed to credit points', cardId, txError)
         pointsEarned = 0
+      } else {
+        transactionId = tx.id
       }
     }
   }
 
-  if (input.purchasedCategory) {
-    await applyPurchasedCategory(supabase, merchantId, customerId, input.purchasedCategory)
+  // Items are more granular/reliable than the flat purchased_category field
+  // — take precedence when both are present, but either alone is enough.
+  const effectiveCategory = input.purchasedCategory ?? dominantCategoryFromItems(input.items ?? [])
+  if (effectiveCategory) {
+    await applyPurchasedCategory(supabase, merchantId, customerId, effectiveCategory)
+  }
+
+  if (input.items && input.items.length > 0) {
+    const { error: itemsError } = await supabase.from('transaction_line_items').insert(
+      input.items.map((item) => ({
+        merchant_id: merchantId,
+        customer_id: customerId,
+        transaction_id: transactionId,
+        sku: item.sku,
+        product_name: item.name,
+        quantity: item.quantity,
+        unit_price: item.price,
+        category: item.category ?? null,
+      }))
+    )
+    if (itemsError) {
+      console.error('[process-payment-success] failed to insert line items', cardId, itemsError)
+    }
+
+    // Best-effort deep-data enrichment — a failure here must never fail the
+    // payment itself (points are already credited by this point), so each
+    // step is independent and only logged on error, not thrown.
+    const basketTotal = input.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+    const spendIncrement = input.transactionAmount && input.transactionAmount > 0 ? input.transactionAmount : basketTotal
+
+    try {
+      const [{ data: habits }, favoriteSku, nextBestItemMessage] = await Promise.all([
+        supabase.from('customer_purchase_habits').select('total_lifetime_spent').eq('customer_id', customerId).maybeSingle(),
+        computeFavoriteSku(supabase, customerId),
+        computeNextBestItem(supabase, merchantId, customerId),
+      ])
+
+      await supabase.from('customer_purchase_habits').upsert({
+        customer_id: customerId,
+        merchant_id: merchantId,
+        total_lifetime_spent: (habits?.total_lifetime_spent ?? 0) + spendIncrement,
+        favorite_sku: favoriteSku,
+        updated_at: new Date().toISOString(),
+      })
+
+      if (nextBestItemMessage) {
+        await supabase.from('loyalty_cards').update({ next_best_item_message: nextBestItemMessage }).eq('id', cardId)
+      }
+    } catch (err) {
+      console.error('[process-payment-success] deep-data enrichment failed', customerId, err)
+    }
   }
 
   const { data: refreshedCard } = await supabase.from('loyalty_cards').select('points_balance').eq('id', cardId).single()

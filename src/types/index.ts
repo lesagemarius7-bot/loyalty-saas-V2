@@ -16,6 +16,8 @@ export type NotificationDelivery = Database['public']['Tables']['notification_de
 export type CustomerNotificationInbox = Database['public']['Tables']['customer_notifications_inbox']['Row']
 export type MerchantStatusEvent = Database['public']['Tables']['merchant_status_events']['Row']
 export type SystemLog = Database['public']['Tables']['system_logs']['Row']
+export type TransactionLineItem = Database['public']['Tables']['transaction_line_items']['Row']
+export type WeatherCampaignLog = Database['public']['Tables']['weather_campaign_logs']['Row']
 
 export type LoyaltyCardWithRelations = LoyaltyCard & {
   customer: Customer

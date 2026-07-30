@@ -68,6 +68,7 @@ export function buildPreviewCard(
     last_visit_at: null,
     last_inactivity_notification_at: null,
     last_smart_engagement_at: null,
+    next_best_item_message: null,
     created_at: now,
     customer: {
       id: previewId,

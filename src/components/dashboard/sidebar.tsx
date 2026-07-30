@@ -17,6 +17,7 @@ import {
   Sparkles,
   Menu,
   X,
+  Plug,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -65,6 +66,7 @@ const NAV_SECTIONS: NavSection[] = [
     title: 'Paramètres',
     items: [
       { label: 'Facturation', href: '/dashboard/billing', icon: CreditCard },
+      { label: 'Intégrations', href: '/dashboard/integrations', icon: Plug },
       { label: 'Paramètres', href: '/dashboard/settings', icon: Settings },
     ],
   },

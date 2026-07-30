@@ -118,6 +118,18 @@ export async function upsertGoogleLoyaltyObject(
   // merchant — an active offer is specific to the one person who received
   // it, so it (and the personalized hub link) has to be on the object, not
   // the class.
+  // Same real, per-customer basket-derived suggestion as the Apple pass
+  // (see computeNextBestItem) — a second module alongside activeOffers,
+  // not a replacement, since the two convey different things (an active
+  // promotion vs. a standing product suggestion).
+  const textModules: { id: string; header: string; body: string }[] = []
+  if (activeOffers.length > 0) {
+    textModules.push({ id: 'activeOffers', header: 'Offres en cours', body: activeOffers.map(formatOfferLine).join('\n') })
+  }
+  if (card.next_best_item_message) {
+    textModules.push({ id: 'nextBestItem', header: 'Suggestion pour vous', body: card.next_best_item_message })
+  }
+
   const objectPayload = {
     id: loyaltyObjectId(card.id),
     classId: loyaltyClassId(merchant),
@@ -125,11 +137,7 @@ export async function upsertGoogleLoyaltyObject(
     accountName: card.customer.full_name,
     loyaltyPoints: { label: 'Points', balance: { int: card.points_balance } },
     barcode: { type: 'QR_CODE', value: card.serial_number },
-    ...(activeOffers.length > 0 && {
-      textModulesData: [
-        { id: 'activeOffers', header: 'Offres en cours', body: activeOffers.map(formatOfferLine).join('\n') },
-      ],
-    }),
+    ...(textModules.length > 0 && { textModulesData: textModules }),
     linksModuleData: {
       uris: [{ uri: `${appUrl()}/my-offers/${card.id}`, description: 'Voir mes offres', id: 'myOffers' }],
     },

@@ -14,6 +14,7 @@
     "supabase:types": "supabase gen types typescript --local > src/types/database.types.ts"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.5.1",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.47.10",
     "ai": "^7.0.41",

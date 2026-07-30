@@ -37,8 +37,19 @@ type MerchantRow = {
   dunning_status: 'ok' | 'payment_failed' | 'retry_1' | 'suspended'
   poc_reminder_7d_sent_at: string | null
   poc_reminder_3d_sent_at: string | null
+  weather_trigger_enabled: boolean
   created_at: string
   updated_at: string
+}
+
+type WeatherCampaignLogRow = {
+  id: string
+  merchant_id: string
+  condition_type: 'hot' | 'cold' | 'rain'
+  temperature_celsius: number | null
+  message_sent: string
+  delivered_count: number
+  triggered_at: string
 }
 
 type MerchantStatusEventRow = {
@@ -121,6 +132,7 @@ type LoyaltyCardRow = {
   last_visit_at: string | null
   last_inactivity_notification_at: string | null
   last_smart_engagement_at: string | null
+  next_best_item_message: string | null
   created_at: string
 }
 
@@ -154,7 +166,7 @@ type NotificationCampaignRow = {
   merchant_id: string
   message: string
   recipient_count: number
-  type: 'manual' | 'inactivity' | 'smart_engagement' | 'targeted'
+  type: 'manual' | 'inactivity' | 'smart_engagement' | 'targeted' | 'weather'
   target_summary: string | null
   created_at: string
 }
@@ -168,7 +180,22 @@ type CustomerPurchaseHabitsRow = {
   favorite_category: string | null
   last_purchased_category: string | null
   last_transaction_at: string | null
+  favorite_sku: string | null
+  total_lifetime_spent: number
   updated_at: string
+}
+
+type TransactionLineItemRow = {
+  id: string
+  merchant_id: string
+  customer_id: string
+  transaction_id: string | null
+  sku: string
+  product_name: string
+  quantity: number
+  unit_price: number
+  category: string | null
+  purchased_at: string
 }
 
 type PosTransactionEventRow = {
@@ -395,6 +422,20 @@ export interface Database {
           },
         ]
       }
+      weather_campaign_logs: {
+        Row: WeatherCampaignLogRow
+        Insert: Partial<WeatherCampaignLogRow> & { merchant_id: string; condition_type: WeatherCampaignLogRow['condition_type']; message_sent: string }
+        Update: Partial<WeatherCampaignLogRow>
+        Relationships: [
+          {
+            foreignKeyName: 'weather_campaign_logs_merchant_id_fkey'
+            columns: ['merchant_id']
+            isOneToOne: false
+            referencedRelation: 'merchants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       customer_purchase_habits: {
         Row: CustomerPurchaseHabitsRow
         Insert: Partial<CustomerPurchaseHabitsRow> & { customer_id: string; merchant_id: string }
@@ -412,6 +453,34 @@ export interface Database {
             columns: ['merchant_id']
             isOneToOne: false
             referencedRelation: 'merchants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      transaction_line_items: {
+        Row: TransactionLineItemRow
+        Insert: Partial<TransactionLineItemRow> & { merchant_id: string; customer_id: string; sku: string; product_name: string }
+        Update: Partial<TransactionLineItemRow>
+        Relationships: [
+          {
+            foreignKeyName: 'transaction_line_items_merchant_id_fkey'
+            columns: ['merchant_id']
+            isOneToOne: false
+            referencedRelation: 'merchants'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'transaction_line_items_customer_id_fkey'
+            columns: ['customer_id']
+            isOneToOne: false
+            referencedRelation: 'customers'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'transaction_line_items_transaction_id_fkey'
+            columns: ['transaction_id']
+            isOneToOne: false
+            referencedRelation: 'transactions'
             referencedColumns: ['id']
           },
         ]

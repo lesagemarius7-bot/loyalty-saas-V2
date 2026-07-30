@@ -3,6 +3,16 @@ import { createServiceRoleClient } from '@/lib/supabase/server'
 import { isEmailConfigured, sendEmail } from '@/lib/email/resend'
 import { pocExpiryReminderEmail } from '@/lib/email/approval-emails'
 import { logSystemEvent } from '@/lib/logging/system-log'
+import { getWeatherForCity, type WeatherSnapshot } from '@/lib/weather/openweather'
+import { deliverToCards, isAnyWalletChannelConfigured, type DeliveryCard } from '@/lib/notifications/deliver'
+
+const WEATHER_BROADCAST_MESSAGE: Record<'hot' | 'cold' | 'rain', string> = {
+  hot: 'Alerte Canicule ☀️ ! Une boisson fraîche vous attend — présentez votre carte pour en profiter.',
+  rain: 'Journée pluvieuse 🌧️ ! Venez vous réchauffer chez nous, présentez votre carte pour en profiter.',
+  cold: 'Coup de froid ❄️ ! Une boisson chaude vous attend — présentez votre carte pour en profiter.',
+}
+
+const WEATHER_DEDUPE_HOURS = 48
 
 export const maxDuration = 60
 
@@ -121,11 +131,116 @@ export async function GET(request: Request) {
       }
     }
 
+    // --- Scenario 3: Weather-triggered broadcast campaigns -----------------
+    // Distinct from /api/cron/smart-engagement's existing weather signal:
+    // that engine only ever flavors an ALREADY-decided per-customer nudge
+    // (usual-time + overdue) with the weather description — it never mass-
+    // broadcasts. This is the actual "canicule → blast everyone" trigger the
+    // roadmap asks for, reusing the same hot/cold/rain buckets
+    // getWeatherForCity already computes rather than inventing a second,
+    // differently-thresholded classification for the same weather.
+    let weatherCampaignsSent = 0
+    let weatherRecipientsNotified = 0
+
+    if (isAnyWalletChannelConfigured()) {
+      const { data: weatherMerchants } = await supabase
+        .from('merchants')
+        .select('id, business_name, city')
+        .eq('weather_trigger_enabled', true)
+        .eq('approval_status', 'approved')
+        .in('billing_status', ['poc_active', 'active'])
+        .not('city', 'is', null)
+
+      const dedupeCutoff = new Date(now.getTime() - WEATHER_DEDUPE_HOURS * 60 * 60 * 1000).toISOString()
+
+      for (const merchant of weatherMerchants ?? []) {
+        if (!merchant.city) continue
+
+        let weather: WeatherSnapshot | null
+        try {
+          weather = await getWeatherForCity(merchant.city)
+        } catch (err) {
+          console.error('[cron/daily] weather lookup failed', merchant.id, err)
+          continue
+        }
+        if (!weather) continue
+        if (weather.condition !== 'hot' && weather.condition !== 'cold' && weather.condition !== 'rain') continue
+
+        const conditionType = weather.condition
+
+        const { data: recentLog } = await supabase
+          .from('weather_campaign_logs')
+          .select('id')
+          .eq('merchant_id', merchant.id)
+          .eq('condition_type', conditionType)
+          .gte('triggered_at', dedupeCutoff)
+          .limit(1)
+          .maybeSingle()
+        if (recentLog) continue
+
+        const { data: cards } = await supabase
+          .from('loyalty_cards')
+          .select(
+            'id, customer_id, google_object_id, points_balance, customer:customers(full_name, customer_purchase_habits(favorite_category, last_purchased_category, last_transaction_at))'
+          )
+          .eq('merchant_id', merchant.id)
+          .eq('status', 'active')
+
+        if (!cards || cards.length === 0) continue
+
+        const message = WEATHER_BROADCAST_MESSAGE[conditionType]
+        const deliveryCards: DeliveryCard[] = cards.map((card) => {
+          const [firstName, ...rest] = (card.customer?.full_name ?? '').split(' ')
+          return {
+            id: card.id,
+            customerId: card.customer_id,
+            googleObjectId: card.google_object_id,
+            firstName: firstName ?? '',
+            lastName: rest.join(' '),
+            favoriteCategory: card.customer?.customer_purchase_habits?.favorite_category ?? null,
+            lastPurchasedCategory: card.customer?.customer_purchase_habits?.last_purchased_category ?? null,
+            lastTransactionAt: card.customer?.customer_purchase_habits?.last_transaction_at ?? null,
+            currentStamps: card.points_balance,
+          }
+        })
+
+        const { data: campaign, error: campaignError } = await supabase
+          .from('notification_campaigns')
+          .insert({ merchant_id: merchant.id, message, recipient_count: cards.length, type: 'weather' })
+          .select('id')
+          .single()
+        if (campaignError || !campaign) {
+          console.error('[cron/daily] failed to log weather campaign', merchant.id, campaignError)
+          continue
+        }
+
+        const result = await deliverToCards(supabase, deliveryCards, undefined, message, merchant.business_name, {
+          merchantId: merchant.id,
+          campaignId: campaign.id,
+        })
+
+        await supabase.from('notification_campaigns').update({ recipient_count: result.cardsUpdated }).eq('id', campaign.id)
+
+        await supabase.from('weather_campaign_logs').insert({
+          merchant_id: merchant.id,
+          condition_type: conditionType,
+          temperature_celsius: weather.tempCelsius,
+          message_sent: message,
+          delivered_count: result.cardsUpdated,
+        })
+
+        weatherCampaignsSent += 1
+        weatherRecipientsNotified += result.cardsUpdated
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       pocMerchantsChecked: pocMerchants?.length ?? 0,
       remindersSent,
       inactivityAlertsSent,
+      weatherCampaignsSent,
+      weatherRecipientsNotified,
     })
   } catch (err) {
     console.error('[cron/daily] failed', err)
