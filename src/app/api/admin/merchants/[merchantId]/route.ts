@@ -50,7 +50,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ me
         update = { subscription_plan: parsed.data.plan }
         break
       case 'toggle_status':
-        update = { billing_status: parsed.data.status === 'active' ? 'active' : 'canceled' }
+        update = {
+          billing_status: parsed.data.status === 'active' ? 'active' : 'canceled',
+          // Reactivating clears any dunning flag — an admin manually
+          // reactivating a suspended account is the resolution, not a
+          // payment retry, so there's nothing left to chase.
+          dunning_status: parsed.data.status === 'active' ? 'ok' : merchant.dunning_status,
+        }
         break
       case 'approve':
         update = {
@@ -68,6 +74,35 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ me
     const { error } = await service.from('merchants').update(update).eq('id', merchantId)
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    // Real event log for the Finance page's churn/expansion metrics — only
+    // logged on the transitions those metrics actually care about, not
+    // every field this route can touch (extend_poc moves a date, not a
+    // billing state).
+    if (parsed.data.action === 'change_plan' && parsed.data.plan !== merchant.subscription_plan) {
+      await service.from('merchant_status_events').insert({
+        merchant_id: merchantId,
+        event_type: 'plan_changed',
+        from_value: merchant.subscription_plan,
+        to_value: parsed.data.plan,
+      })
+    }
+    if (parsed.data.action === 'toggle_status' && update.billing_status !== merchant.billing_status) {
+      await service.from('merchant_status_events').insert({
+        merchant_id: merchantId,
+        event_type: 'billing_status_changed',
+        from_value: merchant.billing_status,
+        to_value: update.billing_status!,
+      })
+    }
+    if (parsed.data.action === 'approve' || parsed.data.action === 'reject') {
+      await service.from('merchant_status_events').insert({
+        merchant_id: merchantId,
+        event_type: 'approval_status_changed',
+        from_value: merchant.approval_status,
+        to_value: update.approval_status!,
+      })
     }
 
     // Best-effort — the merchant is already approved in the DB regardless

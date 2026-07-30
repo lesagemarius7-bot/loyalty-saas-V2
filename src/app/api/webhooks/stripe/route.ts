@@ -26,6 +26,12 @@ export async function POST(request: Request) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session
       if (session.client_reference_id && session.customer && session.subscription) {
+        const { data: before } = await supabase
+          .from('merchants')
+          .select('billing_status')
+          .eq('id', session.client_reference_id)
+          .maybeSingle()
+
         await supabase
           .from('merchants')
           .update({
@@ -33,8 +39,11 @@ export async function POST(request: Request) {
             stripe_subscription_id: session.subscription as string,
             subscription_status: 'active',
             billing_status: 'active',
+            dunning_status: 'ok',
           })
           .eq('id', session.client_reference_id)
+
+        await logStatusEvent(supabase, session.client_reference_id, 'billing_status_changed', before?.billing_status ?? null, 'active')
       }
       break
     }
@@ -44,11 +53,42 @@ export async function POST(request: Request) {
       const subscription = event.data.object as Stripe.Subscription
       const merchantId = subscription.metadata.merchant_id
       if (merchantId) {
+        const { data: before } = await supabase
+          .from('merchants')
+          .select('billing_status')
+          .eq('id', merchantId)
+          .maybeSingle()
+
         const mappedStatus = mapStripeStatus(subscription.status)
+        const newBillingStatus = mapToBillingStatus(mappedStatus)
         await supabase
           .from('merchants')
-          .update({ subscription_status: mappedStatus, billing_status: mapToBillingStatus(mappedStatus) })
+          .update({ subscription_status: mappedStatus, billing_status: newBillingStatus })
           .eq('id', merchantId)
+
+        if (before?.billing_status !== newBillingStatus) {
+          await logStatusEvent(supabase, merchantId, 'billing_status_changed', before?.billing_status ?? null, newBillingStatus)
+        }
+      }
+      break
+    }
+
+    // Feeds the Dunning Hub (/admin/finance) — dunning_status only ever
+    // moves in response to a real Stripe invoice event, never a guess.
+    case 'invoice.payment_failed': {
+      const invoice = event.data.object as Stripe.Invoice
+      const merchantId = await merchantIdForInvoice(supabase, invoice)
+      if (merchantId) {
+        await supabase.from('merchants').update({ dunning_status: 'payment_failed' }).eq('id', merchantId)
+      }
+      break
+    }
+
+    case 'invoice.payment_succeeded': {
+      const invoice = event.data.object as Stripe.Invoice
+      const merchantId = await merchantIdForInvoice(supabase, invoice)
+      if (merchantId) {
+        await supabase.from('merchants').update({ dunning_status: 'ok' }).eq('id', merchantId)
       }
       break
     }
@@ -58,6 +98,34 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ received: true })
+}
+
+async function merchantIdForInvoice(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  invoice: Stripe.Invoice
+): Promise<string | null> {
+  if (!invoice.customer) return null
+  const { data } = await supabase
+    .from('merchants')
+    .select('id')
+    .eq('stripe_customer_id', invoice.customer as string)
+    .maybeSingle()
+  return data?.id ?? null
+}
+
+async function logStatusEvent(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  merchantId: string,
+  eventType: 'plan_changed' | 'billing_status_changed' | 'approval_status_changed',
+  fromValue: string | null,
+  toValue: string
+) {
+  await supabase.from('merchant_status_events').insert({
+    merchant_id: merchantId,
+    event_type: eventType,
+    from_value: fromValue,
+    to_value: toValue,
+  })
 }
 
 function mapStripeStatus(status: Stripe.Subscription.Status) {

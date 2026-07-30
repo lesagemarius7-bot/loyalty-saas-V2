@@ -1,10 +1,26 @@
 import { notFound } from 'next/navigation'
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { computeDashboardOverview } from '@/lib/analytics/dashboard-overview'
+import { stripe } from '@/lib/stripe/client'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { MerchantAdminActions } from '@/components/admin/merchant-admin-actions'
 import type { Merchant } from '@/types'
+
+// Real Stripe invoices only, no reconstruction from subscription_plan —
+// gracefully empty (not an error page) whenever there's no Stripe customer
+// yet, or Stripe itself is unreachable (e.g. production's current
+// placeholder billing key).
+async function fetchRecentInvoices(stripeCustomerId: string | null) {
+  if (!stripeCustomerId) return []
+  try {
+    const invoices = await stripe.invoices.list({ customer: stripeCustomerId, limit: 12 })
+    return invoices.data
+  } catch (err) {
+    console.error('[admin/merchants/:id] failed to fetch Stripe invoices', err)
+    return []
+  }
+}
 
 const BILLING_STATUS_LABELS: Record<string, string> = {
   poc_active: 'Essai (POC)',
@@ -34,6 +50,7 @@ export default async function AdminMerchantDetailPage({ params }: { params: Prom
   // own /dashboard — an admin inspecting a merchant should see the identical
   // numbers, not a parallel/approximate computation.
   const overview = await computeDashboardOverview(service, merchant, 30)
+  const invoices = await fetchRecentInvoices(merchant.stripe_customer_id)
 
   const { data: campaigns } = await service
     .from('notification_campaigns')
@@ -113,6 +130,36 @@ export default async function AdminMerchantDetailPage({ params }: { params: Prom
                     </div>
                     <p className="text-muted-foreground">{c.message}</p>
                     <p className="text-xs text-muted-foreground">{c.recipient_count} destinataire(s)</p>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Factures</CardTitle>
+              <CardDescription>Duplicatas Stripe réels — visibles une fois la facturation réelle activée pour ce commerçant.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {!merchant.stripe_customer_id ? (
+                <p className="text-sm text-muted-foreground">Pas encore de compte Stripe (facturation manuelle / POC).</p>
+              ) : invoices.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucune facture trouvée pour ce commerçant.</p>
+              ) : (
+                invoices.map((invoice) => (
+                  <div key={invoice.id} className="flex items-center justify-between border-b border-border pb-2 text-sm last:border-0 last:pb-0">
+                    <div>
+                      <p className="font-medium">{invoice.number ?? invoice.id}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date((invoice.created ?? 0) * 1000).toLocaleDateString('fr-FR')} · {((invoice.total ?? 0) / 100).toFixed(2)} €
+                      </p>
+                    </div>
+                    {invoice.hosted_invoice_url && (
+                      <a href={invoice.hosted_invoice_url} target="_blank" rel="noreferrer" className="text-xs font-medium text-primary underline">
+                        Voir le PDF
+                      </a>
+                    )}
                   </div>
                 ))
               )}

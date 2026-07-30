@@ -34,8 +34,18 @@ type MerchantRow = {
   approval_status: 'pending' | 'approved' | 'rejected'
   phone: string | null
   owner_name: string | null
+  dunning_status: 'ok' | 'payment_failed' | 'retry_1' | 'suspended'
   created_at: string
   updated_at: string
+}
+
+type MerchantStatusEventRow = {
+  id: string
+  merchant_id: string
+  event_type: 'plan_changed' | 'billing_status_changed' | 'approval_status_changed'
+  from_value: string | null
+  to_value: string
+  created_at: string
 }
 
 type StaffMemberRow = {
@@ -202,6 +212,20 @@ export interface Database {
         Insert: Partial<MerchantRow> & { owner_id: string; business_name: string; slug: string }
         Update: Partial<MerchantRow>
         Relationships: []
+      }
+      merchant_status_events: {
+        Row: MerchantStatusEventRow
+        Insert: Partial<MerchantStatusEventRow> & { merchant_id: string; event_type: MerchantStatusEventRow['event_type']; to_value: string }
+        Update: Partial<MerchantStatusEventRow>
+        Relationships: [
+          {
+            foreignKeyName: 'merchant_status_events_merchant_id_fkey'
+            columns: ['merchant_id']
+            isOneToOne: false
+            referencedRelation: 'merchants'
+            referencedColumns: ['id']
+          },
+        ]
       }
       staff_members: {
         Row: StaffMemberRow

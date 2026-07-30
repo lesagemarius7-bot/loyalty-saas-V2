@@ -139,3 +139,57 @@ Accéder à mon tableau de bord : ${dashboardUrl}`
 
   return { subject, html, text }
 }
+
+export interface PaymentUpdateReminderInput {
+  businessName: string
+  portalUrl: string
+}
+
+// Sent from the admin Dunning Hub's "Renvoyer lien de mise à jour CB"
+// action — a real Stripe billing-portal session URL scoped to payment
+// method update, not a generic account link.
+export function paymentUpdateReminderEmail({ businessName, portalUrl }: PaymentUpdateReminderInput): {
+  subject: string
+  html: string
+  text: string
+} {
+  const safeBusiness = escapeHtml(businessName)
+  const safeUrl = escapeHtml(portalUrl)
+
+  const subject = '⚠️ Action requise : mettez à jour votre moyen de paiement Loyalty'
+
+  const html = emailShell(
+    `<tr>
+      <td style="background-color:${BRAND_COLOR};padding:32px;text-align:center;">
+        <h1 style="margin:0;color:#ffffff;font-size:20px;line-height:1.3;">⚠️ Paiement à régulariser</h1>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:32px;">
+        <p style="margin:0 0 16px;color:#18181b;font-size:15px;line-height:1.5;">Bonjour ${safeBusiness},</p>
+        <p style="margin:0 0 24px;color:#3f3f46;font-size:15px;line-height:1.5;">
+          Le dernier prélèvement de votre abonnement Loyalty a échoué. Mettez à jour votre moyen de paiement pour
+          éviter une suspension de votre accès.
+        </p>
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
+          <tr>
+            <td align="center" style="border-radius:9999px;background-color:${BRAND_COLOR};">
+              <a href="${safeUrl}" style="display:inline-block;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 32px;">
+                💳 Mettre à jour mon moyen de paiement
+              </a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>`,
+    subject
+  )
+
+  const text = `Bonjour ${businessName},
+
+Le dernier prélèvement de votre abonnement Loyalty a échoué. Mettez à jour votre moyen de paiement pour éviter une suspension de votre accès.
+
+Mettre à jour mon moyen de paiement : ${portalUrl}`
+
+  return { subject, html, text }
+}

@@ -1,0 +1,138 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Toast } from '@/components/dashboard/toast'
+import { useToast } from '@/hooks/use-toast'
+import type { DunningEntry, CardExpiringEntry } from '@/lib/analytics/admin-finance'
+
+const DUNNING_LABELS: Record<DunningEntry['dunningStatus'], string> = {
+  payment_failed: '❌ Prélèvement échoué',
+  retry_1: '📩 1ère relance envoyée',
+  suspended: '⛔ Accès suspendu',
+}
+
+export function DunningTable({
+  failedPayments,
+  cardsExpiringSoon,
+  stripeReachable,
+}: {
+  failedPayments: DunningEntry[]
+  cardsExpiringSoon: CardExpiringEntry[]
+  stripeReachable: boolean
+}) {
+  const router = useRouter()
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const { toast, showToast, dismiss } = useToast()
+
+  async function runAction(path: string, merchantId: string, successMessage: string) {
+    setBusyId(merchantId)
+    try {
+      const res = await fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ merchantId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        showToast('error', data.error ?? 'Échec de l’action.')
+        return
+      }
+      showToast('success', successMessage)
+      router.refresh()
+    } catch {
+      showToast('error', 'Impossible de contacter le serveur.')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Prélèvements échoués & relances</CardTitle>
+          <CardDescription>
+            Alimenté par les webhooks Stripe réels (invoice.payment_failed / payment_succeeded) — vide tant qu’aucun
+            paiement Stripe réel n’a échoué.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {failedPayments.length === 0 ? (
+            <p className="text-sm text-slate-400">Aucun impayé en cours. 🎉</p>
+          ) : (
+            failedPayments.map((entry) => (
+              <div
+                key={entry.merchantId}
+                className="flex flex-col gap-2 rounded-md border border-slate-800 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <p className="font-medium text-white">{entry.businessName}</p>
+                  <p className="text-xs text-slate-400">{entry.ownerEmail ?? 'e-mail inconnu'}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant={entry.dunningStatus === 'suspended' ? 'destructive' : 'secondary'}>
+                    {DUNNING_LABELS[entry.dunningStatus]}
+                  </Badge>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busyId === entry.merchantId || !entry.hasStripeCustomer || entry.dunningStatus === 'suspended'}
+                    title={!entry.hasStripeCustomer ? "Pas de compte Stripe pour ce commerçant." : undefined}
+                    onClick={() =>
+                      runAction('/api/admin/finance/dunning/retry', entry.merchantId, '📩 Lien de mise à jour CB envoyé.')
+                    }
+                  >
+                    📩 Renvoyer lien CB
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    disabled={busyId === entry.merchantId || entry.dunningStatus === 'suspended'}
+                    onClick={() =>
+                      runAction('/api/admin/finance/dunning/suspend', entry.merchantId, '⛔ Accès suspendu pour impayé.')
+                    }
+                  >
+                    ⛔ Suspendre
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Cartes bancaires expirant sous 30 jours</CardTitle>
+          <CardDescription>
+            {stripeReachable
+              ? 'Vérification en direct via l’API Stripe pour les commerçants ayant un compte Stripe.'
+              : 'Vérification indisponible — Stripe n’est pas joignable (clé de production non configurée pour la facturation réelle).'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {!stripeReachable ? (
+            <p className="text-sm text-slate-400">—</p>
+          ) : cardsExpiringSoon.length === 0 ? (
+            <p className="text-sm text-slate-400">Aucune carte n’expire dans les 30 prochains jours.</p>
+          ) : (
+            cardsExpiringSoon.map((entry) => (
+              <div key={entry.merchantId} className="flex items-center justify-between rounded-md border border-slate-800 px-4 py-3">
+                <span className="font-medium text-white">{entry.businessName}</span>
+                <span className="text-sm text-amber-400">
+                  Expire {String(entry.expMonth).padStart(2, '0')}/{entry.expYear}
+                </span>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      {toast && <Toast variant={toast.variant} message={toast.message} onDismiss={dismiss} />}
+    </div>
+  )
+}
