@@ -9,6 +9,11 @@ import type { Database } from '@/types/database.types'
 // every protected route needs anyway: bounce logged-out visitors to /login
 // before they even reach a page that would 403/redirect them a second time.
 const PROTECTED_PREFIXES = ['/dashboard', '/admin']
+// /admin/login must stay reachable by a logged-out visitor — it IS the
+// entry point, unlike everything else under /admin. It does its own
+// session/role check server-side (see the page itself), so it doesn't need
+// the middleware's cheap logged-out bounce.
+const PUBLIC_EXCEPTIONS = ['/admin/login']
 
 // Refreshes the Supabase session cookie on every request and redirects
 // unauthenticated visitors away from protected routes. Called from
@@ -39,7 +44,9 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const isProtected = PROTECTED_PREFIXES.some((prefix) => request.nextUrl.pathname.startsWith(prefix))
+  const isProtected =
+    PROTECTED_PREFIXES.some((prefix) => request.nextUrl.pathname.startsWith(prefix)) &&
+    !PUBLIC_EXCEPTIONS.some((path) => request.nextUrl.pathname.startsWith(path))
 
   if (isProtected && !user) {
     const redirectUrl = new URL('/login', request.url)

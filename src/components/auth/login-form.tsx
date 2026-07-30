@@ -16,6 +16,7 @@ export function LoginForm() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [offerAdminChoice, setOfferAdminChoice] = useState(false)
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -31,8 +32,56 @@ export function LoginForm() {
       return
     }
 
-    router.push(searchParams.get('next') ?? '/dashboard')
+    const next = searchParams.get('next')
+
+    // A super admin account is rare (most merchants aren't also platform
+    // admins) and this account was trying to reach a specific page (the
+    // `next` param) — in either case, skip the choice screen and go
+    // straight to the normal merchant flow.
+    if (!next) {
+      const res = await fetch('/api/admin/whoami')
+      const data = await res.json()
+      if (data.isSuperAdmin) {
+        setOfferAdminChoice(true)
+        setLoading(false)
+        return
+      }
+    }
+
+    router.push(next ?? '/dashboard')
     router.refresh()
+  }
+
+  if (offerAdminChoice) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Où voulez-vous aller ?</CardTitle>
+          <CardDescription>Ce compte a aussi les droits Super Admin.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <Button
+            className="w-full"
+            onClick={() => {
+              router.push('/dashboard')
+              router.refresh()
+            }}
+          >
+            Mon dashboard commerçant
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              router.push('/admin')
+              router.refresh()
+            }}
+          >
+            👑 Tableau de bord Admin
+          </Button>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (

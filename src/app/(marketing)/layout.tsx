@@ -31,8 +31,11 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
       </header>
       <main className="flex-1">{children}</main>
       <footer className="border-t border-border py-8">
-        <div className="container text-sm text-muted-foreground">
-          © {new Date().getFullYear()} Loyalty. Tous droits réservés.
+        <div className="container flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+          <span>© {new Date().getFullYear()} Loyalty. Tous droits réservés.</span>
+          <Link href="/admin/login" className="text-xs text-muted-foreground/60 hover:text-muted-foreground">
+            👑 Accès Administration
+          </Link>
         </div>
       </footer>
     </div>
