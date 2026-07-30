@@ -2,7 +2,13 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import type { Database } from '@/types/database.types'
 
-const PROTECTED_PREFIXES = ['/dashboard']
+// /admin's authoritative check (the real is_super_admin flag) lives in
+// requireSuperAdmin() (lib/auth/admin-guard.ts), run server-side in the
+// (admin) layout — that's a DB round trip per request, so it belongs in the
+// layout, not here. Middleware only handles the cheap, cookie-only part
+// every protected route needs anyway: bounce logged-out visitors to /login
+// before they even reach a page that would 403/redirect them a second time.
+const PROTECTED_PREFIXES = ['/dashboard', '/admin']
 
 // Refreshes the Supabase session cookie on every request and redirects
 // unauthenticated visitors away from protected routes. Called from

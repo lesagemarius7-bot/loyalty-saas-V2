@@ -1,0 +1,16 @@
+-- Super admin flag for the /admin backoffice. Simplified from a
+-- role/is_super_admin pair to a single boolean — two overlapping ways to
+-- mark the same thing invites drift (which one is authoritative?), and
+-- every other admin-ish flag in this schema (loyalty_programs.is_active,
+-- etc.) already follows the single-boolean convention.
+--
+-- Deliberately no new RLS policies here. /admin/* pages and API routes
+-- authorize the caller with a service-role lookup of their own merchant row
+-- (see lib/auth/admin-guard.ts) and then use the service-role client for
+-- every subsequent cross-merchant query — the same pattern already used for
+-- every other elevated-privilege path in this app (webhooks, cron jobs, the
+-- PassKit web service). A blanket "super admins bypass RLS on every table"
+-- policy would be a much bigger change to the security model for no real
+-- benefit, since nothing in /admin ever runs as the caller's own session
+-- client.
+alter table merchants add column is_super_admin boolean not null default false;
