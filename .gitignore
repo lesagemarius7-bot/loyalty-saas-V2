@@ -41,6 +41,12 @@ supabase/.temp
 /certificates/*
 !/certificates/.gitkeep
 
+# Serwist-generated service worker (compiled from src/app/sw.ts at build time)
+/public/sw.js
+/public/sw.js.map
+/public/swe-worker-*.js
+/public/swe-worker-*.js.map
+
 # Claude Code local settings (machine-specific permissions, not project config)
 .claude/settings.local.json
 .env*

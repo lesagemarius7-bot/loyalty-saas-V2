@@ -1,3 +1,5 @@
+import withSerwistInit from '@serwist/next'
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -14,4 +16,13 @@ const nextConfig = {
   serverExternalPackages: ['passkit-generator'],
 }
 
-export default nextConfig
+// Compiles src/app/sw.ts into public/sw.js at build time. Dev builds skip
+// the service worker entirely (disable: true below) so `next dev` hot
+// reload isn't fighting a worker serving stale cached chunks.
+const withSerwist = withSerwistInit({
+  swSrc: 'src/app/sw.ts',
+  swDest: 'public/sw.js',
+  disable: process.env.NODE_ENV === 'development',
+})
+
+export default withSerwist(nextConfig)

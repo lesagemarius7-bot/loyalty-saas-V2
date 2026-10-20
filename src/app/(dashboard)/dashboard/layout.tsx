@@ -2,6 +2,7 @@ import { getCurrentMerchant } from '@/lib/get-current-merchant'
 import { DashboardSidebar } from '@/components/dashboard/sidebar'
 import { PendingApprovalScreen } from '@/components/dashboard/pending-approval-screen'
 import { ImpersonationBanner } from '@/components/dashboard/impersonation-banner'
+import { RegisterServiceWorker } from '@/components/dashboard/register-service-worker'
 import { cn } from '@/lib/utils'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -18,6 +19,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className={cn('flex min-h-screen flex-col md:flex-row', impersonating && 'pt-11')}>
+      <RegisterServiceWorker />
       {impersonating && <ImpersonationBanner businessName={merchant.business_name} merchantId={merchant.id} />}
       <DashboardSidebar businessName={merchant.business_name} />
       <main className="w-full max-w-full flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8">{children}</main>
