@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/ca
 import { AnimatedWalletCards } from '@/components/marketing/animated-wallet-cards'
 import { PhoneShowcase } from '@/components/marketing/phone-showcase'
 import { BookDemoButton } from '@/components/marketing/book-demo-button'
+import { PromoVideoSection } from '@/components/marketing/promo-video-section'
 import { TrustedBy } from '@/components/marketing/trusted-by'
 
 const REASSURANCE_BADGES = [
@@ -110,6 +111,8 @@ export default function LandingPage() {
           <PhoneShowcase />
         </div>
       </section>
+
+      <PromoVideoSection />
 
       <TrustedBy />
 
