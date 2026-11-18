@@ -413,6 +413,7 @@ export function CustomersTable({
         <SendTargetedNotificationModal
           merchantId={merchant.id}
           businessName={merchant.business_name}
+          logoUrl={merchant.logo_url}
           templates={templates}
           customers={selectedCustomers.map(toTargetedCustomer)}
           targetSummary={targetSummary}

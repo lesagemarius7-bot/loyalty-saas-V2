@@ -16,6 +16,7 @@ export function SendCampaignForm({
   recipientCount,
   merchantId,
   businessName,
+  logoUrl,
   templates,
   previewCustomer,
   initialTemplateId,
@@ -23,6 +24,7 @@ export function SendCampaignForm({
   recipientCount: number
   merchantId: string
   businessName: string
+  logoUrl?: string | null
   templates: NotificationTemplate[]
   previewCustomer: PreviewCustomerData | null
   /** Preselects a template — set via ?template=… from the dashboard's "Animation Flash" quick action. */
@@ -105,6 +107,7 @@ export function SendCampaignForm({
               <NotificationComposer
                 merchantId={merchantId}
                 businessName={businessName}
+                logoUrl={logoUrl}
                 title={title}
                 onTitleChange={(v) => {
                   setTitle(v)

@@ -24,6 +24,7 @@ export interface TargetedCustomer {
 export function SendTargetedNotificationModal({
   merchantId,
   businessName,
+  logoUrl,
   templates,
   customers,
   targetSummary,
@@ -32,6 +33,7 @@ export function SendTargetedNotificationModal({
 }: {
   merchantId: string
   businessName: string
+  logoUrl?: string | null
   templates: NotificationTemplate[]
   customers: TargetedCustomer[]
   targetSummary: string
@@ -132,6 +134,7 @@ export function SendTargetedNotificationModal({
                 <NotificationComposer
                   merchantId={merchantId}
                   businessName={businessName}
+                  logoUrl={logoUrl}
                   title={title}
                   onTitleChange={setTitle}
                   body={message}

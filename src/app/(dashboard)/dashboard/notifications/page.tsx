@@ -89,6 +89,7 @@ export default async function NotificationsPage({
           recipientCount={recipientCount ?? 0}
           merchantId={merchant.id}
           businessName={merchant.business_name}
+          logoUrl={merchant.logo_url}
           templates={templates ?? []}
           previewCustomer={previewCustomer}
           initialTemplateId={template}

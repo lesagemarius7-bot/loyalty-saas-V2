@@ -53,6 +53,7 @@ function insertAtCursor(
 export function NotificationComposer({
   merchantId,
   businessName,
+  logoUrl,
   title,
   onTitleChange,
   body,
@@ -69,6 +70,8 @@ export function NotificationComposer({
 }: {
   merchantId: string
   businessName: string
+  /** Merchant's uploaded logo — shown in the lock-screen preview when set, falling back to initials otherwise. */
+  logoUrl?: string | null
   title: string
   onTitleChange: (v: string) => void
   body: string
@@ -321,9 +324,21 @@ export function NotificationComposer({
         </p>
         <div className="rounded-2xl border border-border bg-foreground/95 p-3 text-background shadow-lg">
           <div className="flex items-start gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground">
-              {businessName.slice(0, 2).toUpperCase()}
-            </div>
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={logoUrl}
+                alt={businessName}
+                className="h-8 w-8 shrink-0 rounded-lg bg-background object-contain p-1"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                }}
+              />
+            ) : (
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground">
+                {businessName.slice(0, 2).toUpperCase()}
+              </div>
+            )}
             <div className={cn('min-w-0 flex-1', !previewTitle && !previewBody && 'opacity-50')}>
               <p className="truncate text-xs font-semibold uppercase tracking-wide opacity-70">{businessName}</p>
               {previewTitle && <p className="truncate text-sm font-semibold">{previewTitle}</p>}
