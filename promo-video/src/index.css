@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+/* Mirrors loyalty-saas/src/app/globals.css's :root tokens (light theme only —
+   dark surfaces in this video use the hex constants in theme.ts directly,
+   since each scene's "theme" is an authored choice here, not an OS toggle).
+   Keeping the same --color-* names as the main app's Tailwind v3 config means
+   className strings lifted from real components (bg-primary, text-accent,
+   bg-secondary, border-border, ...) work unchanged. */
+@theme {
+  --color-primary: #483fe9;
+  --color-primary-foreground: #ffffff;
+  --color-accent: #1bc08f;
+  --color-accent-foreground: #ffffff;
+  --color-secondary: #f3f4f6;
+  --color-secondary-foreground: #0f1729;
+  --color-border: #e5e7eb;
+  --color-background: #ffffff;
+  --color-foreground: #0f1729;
+  --color-card: #ffffff;
+  --color-card-foreground: #0f1729;
+  --color-muted: #f3f4f6;
+  --color-muted-foreground: #6b7280;
+  --color-destructive: #ef4343;
+  --color-destructive-foreground: #ffffff;
+  --radius-lg: 0.75rem;
+  --radius-md: 0.5rem;
+  --radius-sm: 0.25rem;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: transparent;
+}
