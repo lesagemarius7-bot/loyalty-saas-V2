@@ -64,9 +64,28 @@ export const DURATIONS = {
 
 export const TRANSITION_FRAMES = 15 // 0.5s crossfade/slide between scenes
 
+// The scenes actually chained in PromoVideo.tsx's TransitionSeries, in
+// order — NOT necessarily all of DURATIONS's keys. firstVisitCardReceived
+// and cardLostDisappointment (the comptoir/ticket intro) were cut from the
+// main edit so it opens straight on the Loyalty pivot, but their scene
+// files/components are kept and still registered standalone in Root.tsx —
+// nothing was deleted, just excluded from this cut. Add/remove a key here
+// (and the matching TransitionSeries.Sequence in PromoVideo.tsx) to change
+// what's actually in the rendered video.
+export const MAIN_CUT: (keyof typeof DURATIONS)[] = [
+  'digitalShift',
+  'scanQR',
+  'walletAdd',
+  'realtimeTracking',
+  'dashboardIntro',
+  'audienceTargeting',
+  'sendTargetedCampaign',
+  'playbookActivate',
+  'outro',
+]
+
 export const TOTAL_DURATION =
-  Object.values(DURATIONS).reduce((a, b) => a + b, 0) -
-  (Object.keys(DURATIONS).length - 1) * TRANSITION_FRAMES
+  MAIN_CUT.reduce((sum, key) => sum + DURATIONS[key], 0) - (MAIN_CUT.length - 1) * TRANSITION_FRAMES
 
 export const VIDEO_WIDTH = 1920
 export const VIDEO_HEIGHT = 1080

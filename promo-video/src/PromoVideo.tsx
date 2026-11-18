@@ -5,8 +5,6 @@ import { fade } from '@remotion/transitions/fade'
 import { DURATIONS, TRANSITION_FRAMES } from './theme'
 import { VOICEOVER_SRC } from './data/script'
 
-import { FirstVisitCardReceivedScene } from './scenes/01-FirstVisitCardReceived'
-import { CardLostDisappointmentScene } from './scenes/02-CardLostDisappointment'
 import { DigitalShiftScene } from './scenes/03-DigitalShift'
 import { ScanQRScene } from './scenes/04-ScanQR'
 import { WalletAddScene } from './scenes/05-WalletAdd'
@@ -24,23 +22,15 @@ const transitionTiming = linearTiming({ durationInFrames: TRANSITION_FRAMES })
 // were retimed for a silent/visual-only cut in the meantime).
 const AUDIO_ENABLED = false
 
-// The full ~57s "le midi au restaurant japonais" cut — 11 scenes, crossfading
-// into each other. See DURATIONS/SCRIPT in theme.ts / data/script.ts for the
+// The ~44s cut — 9 scenes, crossfading into each other, opening directly on
+// the Loyalty pivot (the comptoir/ticket intro — firstVisitCardReceived,
+// cardLostDisappointment — was cut for a tighter open; see MAIN_CUT in
+// theme.ts). See DURATIONS/SCRIPT in theme.ts / data/script.ts for the
 // story-arc breakdown (edit timing/text there, not here).
 export const PromoVideo: React.FC = () => {
   return (
     <AbsoluteFill style={{ background: '#000' }}>
       <TransitionSeries>
-        <TransitionSeries.Sequence durationInFrames={DURATIONS.firstVisitCardReceived}>
-          <FirstVisitCardReceivedScene />
-        </TransitionSeries.Sequence>
-        <TransitionSeries.Transition presentation={fade()} timing={transitionTiming} />
-
-        <TransitionSeries.Sequence durationInFrames={DURATIONS.cardLostDisappointment}>
-          <CardLostDisappointmentScene />
-        </TransitionSeries.Sequence>
-        <TransitionSeries.Transition presentation={fade()} timing={transitionTiming} />
-
         <TransitionSeries.Sequence durationInFrames={DURATIONS.digitalShift}>
           <DigitalShiftScene />
         </TransitionSeries.Sequence>
