@@ -5,6 +5,7 @@ import { fade } from '@remotion/transitions/fade'
 import { DURATIONS, TRANSITION_FRAMES } from './theme'
 import { VOICEOVER_SRC } from './data/script'
 
+import { HookScene } from './scenes/00-Hook'
 import { DigitalShiftScene } from './scenes/03-DigitalShift'
 import { ScanQRScene } from './scenes/04-ScanQR'
 import { WalletAddScene } from './scenes/05-WalletAdd'
@@ -22,15 +23,22 @@ const transitionTiming = linearTiming({ durationInFrames: TRANSITION_FRAMES })
 // were retimed for a silent/visual-only cut in the meantime).
 const AUDIO_ENABLED = false
 
-// The ~44s cut — 9 scenes, crossfading into each other, opening directly on
-// the Loyalty pivot (the comptoir/ticket intro — firstVisitCardReceived,
-// cardLostDisappointment — was cut for a tighter open; see MAIN_CUT in
-// theme.ts). See DURATIONS/SCRIPT in theme.ts / data/script.ts for the
-// story-arc breakdown (edit timing/text there, not here).
+// The ~45s cut — 10 scenes, crossfading into each other. Opens cold on
+// HookScene (the Wallet card + scan + instant point, frame 0, no build-up),
+// then DigitalShift names the product, then the detailed walkthrough. The
+// comptoir/ticket intro (firstVisitCardReceived, cardLostDisappointment)
+// stays cut — see MAIN_CUT in theme.ts. See DURATIONS/SCRIPT in theme.ts /
+// data/script.ts for the story-arc breakdown (edit timing/text there, not
+// here).
 export const PromoVideo: React.FC = () => {
   return (
     <AbsoluteFill style={{ background: '#000' }}>
       <TransitionSeries>
+        <TransitionSeries.Sequence durationInFrames={DURATIONS.hook}>
+          <HookScene />
+        </TransitionSeries.Sequence>
+        <TransitionSeries.Transition presentation={fade()} timing={transitionTiming} />
+
         <TransitionSeries.Sequence durationInFrames={DURATIONS.digitalShift}>
           <DigitalShiftScene />
         </TransitionSeries.Sequence>

@@ -49,17 +49,23 @@ export const FPS = 30
 // total duration — check the comments in 07-DashboardIntro.tsx (nav sweep)
 // if you retime that one.
 export const DURATIONS = {
-  firstVisitCardReceived: 140, // 0:00–0:04.7
-  cardLostDisappointment: 145, // 0:04.7–0:09.5
-  digitalShift: 175, // 0:09.5–0:15.3
-  scanQR: 145, // 0:15.3–0:20.2
-  walletAdd: 155, // 0:20.2–0:25.3
-  realtimeTracking: 110, // 0:25.3–0:29.0
-  dashboardIntro: 175, // 0:29.0–0:34.8
-  audienceTargeting: 130, // 0:34.8–0:39.2
-  sendTargetedCampaign: 215, // 0:39.2–0:46.3
-  playbookActivate: 160, // 0:46.3–0:51.7
-  outro: 170, // 0:51.7–0:57.3
+  // Registered standalone in Root.tsx but excluded from MAIN_CUT below —
+  // see the comment there for why (comptoir/ticket intro, cut for a
+  // tighter open).
+  firstVisitCardReceived: 140,
+  cardLostDisappointment: 145,
+
+  // --- MAIN_CUT, in order ---
+  hook: 85, // 0:00–0:02.8 — the proof-of-concept cold open
+  digitalShift: 95, // 0:02.8–0:06.0 — trimmed to just the brand reveal (was 175f/the full card→phone dissolve; that beat is now redundant with Hook)
+  scanQR: 145, // 0:06.0–0:10.8
+  walletAdd: 155, // 0:10.8–0:16.0
+  realtimeTracking: 110, // 0:16.0–0:19.7
+  dashboardIntro: 195, // 0:19.7–0:26.2
+  audienceTargeting: 145, // 0:26.2–0:31.0
+  sendTargetedCampaign: 215, // 0:31.0–0:38.2
+  playbookActivate: 165, // 0:38.2–0:43.7
+  outro: 170, // 0:43.7–0:49.3
 } as const
 
 export const TRANSITION_FRAMES = 15 // 0.5s crossfade/slide between scenes
@@ -73,6 +79,7 @@ export const TRANSITION_FRAMES = 15 // 0.5s crossfade/slide between scenes
 // (and the matching TransitionSeries.Sequence in PromoVideo.tsx) to change
 // what's actually in the rendered video.
 export const MAIN_CUT: (keyof typeof DURATIONS)[] = [
+  'hook',
   'digitalShift',
   'scanQR',
   'walletAdd',

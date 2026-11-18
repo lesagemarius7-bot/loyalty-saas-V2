@@ -4,6 +4,7 @@ import './index.css'
 import { PromoVideo } from './PromoVideo'
 import { VIDEO_WIDTH, VIDEO_HEIGHT, FPS, TOTAL_DURATION, DURATIONS } from './theme'
 
+import { HookScene } from './scenes/00-Hook'
 import { FirstVisitCardReceivedScene } from './scenes/01-FirstVisitCardReceived'
 import { CardLostDisappointmentScene } from './scenes/02-CardLostDisappointment'
 import { DigitalShiftScene } from './scenes/03-DigitalShift'
@@ -19,6 +20,7 @@ import { OutroScene } from './scenes/11-Outro'
 // Individual scenes are also registered standalone below — handy in Remotion
 // Studio for retiming/tweaking one beat without scrubbing the full cut.
 const SCENES: { id: string; key: keyof typeof DURATIONS; Component: React.FC }[] = [
+  { id: 'Scene-00-Hook', key: 'hook', Component: HookScene },
   { id: 'Scene-01-FirstVisitCardReceived', key: 'firstVisitCardReceived', Component: FirstVisitCardReceivedScene },
   { id: 'Scene-02-CardLostDisappointment', key: 'cardLostDisappointment', Component: CardLostDisappointmentScene },
   { id: 'Scene-03-DigitalShift', key: 'digitalShift', Component: DigitalShiftScene },

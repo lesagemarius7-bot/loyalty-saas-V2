@@ -7,15 +7,35 @@ import { colors } from '../theme'
 // Tile choice mirrors the VO's three questions almost verbatim ("qui
 // revient, qui décroche, qui dépense le plus") — the dashboard literally
 // answers the questions MerchantBlindnessScene posed as "?" placeholders.
+// `trend` lands after the count-up to sell "this updates live", not just a
+// static end-state snapshot.
 const TILES = [
-  { label: 'Clients qui reviennent', value: 312, suffix: '' },
-  { label: 'Clients inactifs (à relancer)', value: 58, suffix: '' },
-  { label: 'Panier moyen', value: 18, suffix: '€' },
+  { label: 'Clients qui reviennent', value: 312, suffix: '', trend: '+9 aujourd’hui' },
+  { label: 'Clients inactifs (à relancer)', value: 58, suffix: '', trend: '-3 cette semaine' },
+  { label: 'Panier moyen', value: 18, suffix: '€', trend: '+1,40€ ce mois-ci' },
 ]
 
-function StatTile({ label, value, suffix, frame }: { label: string; value: number; suffix: string; frame: number }) {
+function StatTile({
+  label,
+  value,
+  suffix,
+  trend,
+  frame,
+}: {
+  label: string
+  value: number
+  suffix: string
+  trend: string
+  frame: number
+}) {
   const progress = interpolate(frame, [20, 70], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
   const current = Math.round(value * progress)
+  const trendOpacity = interpolate(frame, [82, 98], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
+  const trendY = interpolate(frame, [82, 98], [8, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
+  // Subtle "still live" pulse on the dot after the trend lands, well past
+  // the count-up — a static tile reads as a screenshot, this doesn't.
+  const pulse = 0.5 + Math.sin(frame / 10) * 0.5
+
   return (
     <div style={{ flex: 1, background: '#fff', border: `1px solid ${colors.border}`, borderRadius: 12, padding: 20 }}>
       <p style={{ margin: 0, fontSize: 13, color: colors.mutedForeground, fontWeight: 600 }}>{label}</p>
@@ -23,6 +43,19 @@ function StatTile({ label, value, suffix, frame }: { label: string; value: numbe
         {current}
         {suffix}
       </p>
+      <div
+        style={{
+          marginTop: 10,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          opacity: trendOpacity,
+          transform: `translateY(${trendY}px)`,
+        }}
+      >
+        <span style={{ width: 6, height: 6, borderRadius: 999, background: colors.accent, opacity: 0.5 + pulse * 0.5 }} />
+        <span style={{ fontSize: 12, fontWeight: 700, color: colors.accent }}>{trend}</span>
+      </div>
     </div>
   )
 }
@@ -33,7 +66,7 @@ export function DashboardIntroScene() {
   // breadth of the dashboard in one motion. Thresholds sized to this scene's
   // own DURATIONS.dashboardIntro (theme.ts) — keep roughly in thirds if you
   // retime it.
-  const active = frame < 60 ? '/dashboard' : frame < 120 ? '/dashboard/customers' : '/dashboard/playbooks'
+  const active = frame < 65 ? '/dashboard' : frame < 135 ? '/dashboard/customers' : '/dashboard/playbooks'
   const frameOpacity = interpolate(frame, [0, 15], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
   const frameScale = interpolate(frame, [0, 15], [0.96, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
 
@@ -58,7 +91,7 @@ export function DashboardIntroScene() {
         </BrowserFrame>
       </div>
 
-      <Caption text={getCaption('dashboardIntro')} delay={50} />
+      <Caption text={getCaption('dashboardIntro')} delay={55} />
     </div>
   )
 }

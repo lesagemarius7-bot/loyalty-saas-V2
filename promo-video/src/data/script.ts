@@ -9,13 +9,14 @@ import { DURATIONS } from '../theme'
 // PromoVideo.tsx, so these captions currently carry the whole narrative on
 // their own, not just as subtitles for a VO track.
 //
-// Story arc (v3 — "le midi au restaurant japonais"):
-//   Acte 0 — Le problème     : firstVisitCardReceived, cardLostDisappointment
-//   Acte 0 → 1 — Le pivot    : digitalShift, scanQR, walletAdd
-//   Acte 1 — La puissance    : realtimeTracking, dashboardIntro,
-//                               audienceTargeting, sendTargetedCampaign,
-//                               playbookActivate
-//   Acte 2 — Conclusion      : outro
+// Story arc (v4 — cold open, then "le midi au restaurant japonais"):
+//   Cold open             : hook (not in MAIN_CUT: firstVisitCardReceived,
+//                            cardLostDisappointment — see theme.ts)
+//   Le pivot              : digitalShift, scanQR, walletAdd
+//   La puissance           : realtimeTracking, dashboardIntro,
+//                            audienceTargeting, sendTargetedCampaign,
+//                            playbookActivate
+//   Conclusion            : outro
 export const SCRIPT: { key: keyof typeof DURATIONS; vo: string; caption: string }[] = [
   {
     key: 'firstVisitCardReceived',
@@ -28,9 +29,14 @@ export const SCRIPT: { key: keyof typeof DURATIONS; vo: string; caption: string 
     caption: 'La visite suivante : un ticket vide. Pas de carte, pas de points.',
   },
   {
+    key: 'hook',
+    vo: 'Scan en caisse. Points instantanés. Toujours dans leur poche.',
+    caption: 'Scan en caisse. Points instantanés. Toujours dans leur poche.',
+  },
+  {
     key: 'digitalShift',
-    vo: 'Entre-temps, Sushi Yama avait adopté Loyalty : la fidélité entre enfin dans l’ère du smartphone.',
-    caption: 'La fidélité entre enfin dans l’ère du smartphone.',
+    vo: 'Voici Loyalty : la fidélité, nouvelle génération.',
+    caption: 'La fidélité, nouvelle génération.',
   },
   {
     key: 'scanQR',

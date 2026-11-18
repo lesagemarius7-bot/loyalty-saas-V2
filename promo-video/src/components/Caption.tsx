@@ -47,8 +47,10 @@ export function Caption({ text, delay = 0 }: { text: string; delay?: number }) {
   )
 }
 
-// Small uppercase tag ("CÔTÉ CLIENT" / "CÔTÉ COMMERÇANT") pinned top-left to
-// orient the viewer on which side of the alternation they're watching.
+// Filled badge ("CÔTÉ CLIENT" / "CÔTÉ COMMERÇANT") pinned top-left to orient
+// the viewer on which side of the product the current scene shows — a
+// translucent pill with a visible fill (not just a dot + text) so it reads
+// at a glance, on both light and dark scene backgrounds.
 export function SceneKicker({ label, dark = true }: { label: string; dark?: boolean }) {
   const frame = useCurrentFrame()
   const opacity = interpolate(frame, [0, 10], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
@@ -56,23 +58,28 @@ export function SceneKicker({ label, dark = true }: { label: string; dark?: bool
     <div
       style={{
         position: 'absolute',
-        top: 56,
-        left: 80,
+        top: 48,
+        left: 72,
         opacity,
-        display: 'flex',
+        display: 'inline-flex',
         alignItems: 'center',
-        gap: 10,
+        gap: 9,
+        padding: '9px 18px 9px 14px',
+        borderRadius: 999,
+        background: dark ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,41,0.07)',
+        border: `1px solid ${dark ? 'rgba(255,255,255,0.16)' : 'rgba(15,23,41,0.1)'}`,
+        boxShadow: dark ? '0 8px 20px rgba(0,0,0,0.25)' : '0 4px 14px rgba(15,23,41,0.06)',
       }}
     >
-      <span style={{ width: 8, height: 8, borderRadius: 999, background: '#1bc08f' }} />
+      <span style={{ width: 7, height: 7, borderRadius: 999, background: '#1bc08f', flexShrink: 0 }} />
       <span
         style={{
           fontFamily: 'Inter, sans-serif',
-          fontSize: 15,
-          fontWeight: 700,
-          letterSpacing: 2.5,
+          fontSize: 14,
+          fontWeight: 800,
+          letterSpacing: 1.8,
           textTransform: 'uppercase',
-          color: dark ? 'rgba(255,255,255,0.8)' : 'rgba(15,23,41,0.6)',
+          color: dark ? '#ffffff' : '#0f1729',
         }}
       >
         {label}
