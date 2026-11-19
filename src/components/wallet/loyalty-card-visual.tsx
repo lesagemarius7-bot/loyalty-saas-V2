@@ -227,9 +227,9 @@ export function LoyaltyCardVisual({
 
             {progressSection}
 
-            <div className="flex items-center justify-between border-t border-white/10 py-3 text-xs">
-              <span className="uppercase tracking-wider opacity-70">Récompense</span>
-              <span className="font-semibold">{rewardDescription || 'Récompense'}</span>
+            <div className="flex items-center justify-between gap-3 border-t border-white/10 py-3 text-xs">
+              <span className="shrink-0 uppercase tracking-wider opacity-70">Récompense</span>
+              <span className="text-right font-semibold">{rewardDescription || 'Récompense'}</span>
             </div>
           </div>
 
