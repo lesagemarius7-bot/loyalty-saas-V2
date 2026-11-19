@@ -7,6 +7,10 @@ type Client = SupabaseClient<Database>
 const INACTIVITY_DAYS = 21
 const WEEKDAY_WINDOW_DAYS = 90
 const WEEKDAY_LABELS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
+// Rolling 7-day buckets, most recent ending today — same convention as
+// walletInstallsByDay below (a rolling window anchored to `now`, not
+// calendar weeks), so there's no Monday-vs-today partial-week edge case.
+const WEEKLY_TRENDS_WEEKS = 8
 
 export interface DashboardOverview {
   kpis: {
@@ -22,6 +26,7 @@ export interface DashboardOverview {
   charts: {
     walletInstallsByDay: { date: string; count: number }[]
     visitsByWeekday: { dayIndex: number; label: string; count: number }[]
+    weeklyTrends: WeeklyTrendPoint[]
   }
   recentActivity: RecentActivityEvent[]
   onboarding: { hasAnyCustomers: boolean; hasAnyTransactions: boolean }
@@ -32,6 +37,22 @@ export interface RecentActivityEvent {
   type: 'stamp' | 'reward' | 'wallet_install'
   message: string
   occurredAt: string
+}
+
+// One point per rolling week, oldest first — feeds the overview's four
+// small-multiple trend charts (WeeklyTrendsChart). `activeWalletCards` is a
+// cumulative snapshot ("active cards created on/before this week's end"),
+// `stampsDistributed`/`rewardsUnlocked` are per-week counts (not
+// cumulative), and `estimatedRevenue` mirrors the KPI card's own
+// avg-basket-value estimate — null, not 0, when unconfigured, so the chart
+// can tell "no revenue" from "we don't know".
+export interface WeeklyTrendPoint {
+  weekEndDate: string
+  label: string
+  activeWalletCards: number
+  stampsDistributed: number
+  rewardsUnlocked: number
+  estimatedRevenue: number | null
 }
 
 function startOfMonth(date: Date) {
@@ -67,6 +88,7 @@ export async function computeDashboardOverview(
   const inactivityCutoff = new Date(now.getTime() - INACTIVITY_DAYS * 24 * 60 * 60 * 1000)
   const weekdayWindowStart = new Date(now.getTime() - WEEKDAY_WINDOW_DAYS * 24 * 60 * 60 * 1000)
   const chartWindowStart = new Date(now.getTime() - windowDays * 24 * 60 * 60 * 1000)
+  const weeklyTrendsWindowStart = new Date(now.getTime() - WEEKLY_TRENDS_WEEKS * 7 * 24 * 60 * 60 * 1000)
 
   const [
     { count: customerCount, error: customerCountError },
@@ -74,6 +96,7 @@ export async function computeDashboardOverview(
     { data: monthTransactions, error: monthTxError },
     { data: prevMonthEarnTx, error: prevMonthTxError },
     { data: weekdayTransactions, error: weekdayTxError },
+    { data: weeklyTrendTransactions, error: weeklyTrendTxError },
   ] = await Promise.all([
     supabase.from('customers').select('*', { count: 'exact', head: true }).eq('merchant_id', merchant.id),
     supabase
@@ -102,6 +125,12 @@ export async function computeDashboardOverview(
       .eq('merchant_id', merchant.id)
       .eq('type', 'earn')
       .gte('created_at', weekdayWindowStart.toISOString()),
+    supabase
+      .from('transactions')
+      .select('type, created_at')
+      .eq('merchant_id', merchant.id)
+      .in('type', ['earn', 'redeem'])
+      .gte('created_at', weeklyTrendsWindowStart.toISOString()),
   ])
 
   if (customerCountError) console.error('[dashboard-overview] customer count failed', customerCountError)
@@ -109,6 +138,7 @@ export async function computeDashboardOverview(
   if (monthTxError) console.error('[dashboard-overview] month transactions fetch failed', monthTxError)
   if (prevMonthTxError) console.error('[dashboard-overview] previous month transactions fetch failed', prevMonthTxError)
   if (weekdayTxError) console.error('[dashboard-overview] weekday transactions fetch failed', weekdayTxError)
+  if (weeklyTrendTxError) console.error('[dashboard-overview] weekly trend transactions fetch failed', weeklyTrendTxError)
 
   const cards = activeCards ?? []
   const monthTx = monthTransactions ?? []
@@ -183,6 +213,42 @@ export async function computeDashboardOverview(
     walletInstallsByDay.push({ date: key, count: installDayBuckets.get(key) ?? 0 })
   }
 
+  // -- Weekly trends (the 4 overview mini-charts) ------------------------
+  // Bucket index 0 = oldest week, last index = this week — same
+  // oldest-first ordering as walletInstallsByDay, for a left-to-right
+  // reading chart. `activeWalletCards` only has points on/after the first
+  // Wallet card's creation; weeks before that correctly show 0, not a
+  // fabricated backfill.
+  const weeklyStampsAndRewards = (weeklyTrendTransactions ?? []).reduce(
+    (buckets, t) => {
+      const daysAgo = Math.floor((now.getTime() - new Date(t.created_at).getTime()) / (24 * 60 * 60 * 1000))
+      const weeksAgo = Math.floor(daysAgo / 7)
+      const bucketIndex = WEEKLY_TRENDS_WEEKS - 1 - weeksAgo
+      if (bucketIndex < 0 || bucketIndex >= WEEKLY_TRENDS_WEEKS) return buckets
+      if (t.type === 'earn') buckets[bucketIndex]!.stamps += 1
+      else if (t.type === 'redeem') buckets[bucketIndex]!.rewards += 1
+      return buckets
+    },
+    Array.from({ length: WEEKLY_TRENDS_WEEKS }, () => ({ stamps: 0, rewards: 0 }))
+  )
+
+  const weeklyTrends: WeeklyTrendPoint[] = []
+  for (let i = WEEKLY_TRENDS_WEEKS - 1; i >= 0; i--) {
+    const weekEnd = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000)
+    const bucketIndex = WEEKLY_TRENDS_WEEKS - 1 - i
+    const { stamps, rewards } = weeklyStampsAndRewards[bucketIndex]!
+    const activeWalletCards = walletCards.filter((c) => new Date(c.created_at) <= weekEnd).length
+
+    weeklyTrends.push({
+      weekEndDate: dayKey(weekEnd.toISOString()),
+      label: weekEnd.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }),
+      activeWalletCards,
+      stampsDistributed: stamps,
+      rewardsUnlocked: rewards,
+      estimatedRevenue: avgBasketConfigured ? Math.round((merchant.avg_basket_value as number) * stamps) : null,
+    })
+  }
+
   // -- Recent activity feed -------------------------------------------------
   const stampEvents: RecentActivityEvent[] = monthEarnTx.slice(0, 10).map((t) => ({
     id: `tx-${t.id}`,
@@ -233,7 +299,7 @@ export async function computeDashboardOverview(
       inactiveCustomersCount,
       quietestWeekday: quietestWeekday ? { dayIndex: quietestWeekday.dayIndex, label: quietestWeekday.label } : null,
     },
-    charts: { walletInstallsByDay, visitsByWeekday },
+    charts: { walletInstallsByDay, visitsByWeekday, weeklyTrends },
     recentActivity,
     onboarding: { hasAnyCustomers: (customerCount ?? 0) > 0, hasAnyTransactions: monthTx.length > 0 },
   }

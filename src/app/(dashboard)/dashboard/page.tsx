@@ -5,6 +5,7 @@ import { KpiCards } from '@/components/dashboard/overview/kpi-cards'
 import { QuickActions } from '@/components/dashboard/overview/quick-actions'
 import { WalletInstallsChart } from '@/components/dashboard/overview/wallet-installs-chart'
 import { WeekdayChart } from '@/components/dashboard/overview/weekday-chart'
+import { WeeklyTrendsChart } from '@/components/dashboard/overview/weekly-trends-chart'
 import { RecentActivityFeed } from '@/components/dashboard/overview/recent-activity-feed'
 import { DashboardErrorFallback } from '@/components/dashboard/dashboard-error-fallback'
 
@@ -39,6 +40,11 @@ export default async function DashboardOverviewPage() {
         <KpiCards kpis={overview.kpis} />
 
         <QuickActions quickActions={overview.quickActions} enrollmentUrl={enrollmentUrl} />
+
+        <WeeklyTrendsChart
+          weeklyTrends={overview.charts.weeklyTrends}
+          avgBasketConfigured={overview.kpis.estimatedRevenue.avgBasketConfigured}
+        />
 
         <div className="grid gap-6 lg:grid-cols-2">
           <WalletInstallsChart initialData={overview.charts.walletInstallsByDay} initialWindowDays={DEFAULT_WINDOW_DAYS} />
