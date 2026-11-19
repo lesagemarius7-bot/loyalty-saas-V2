@@ -28,7 +28,7 @@ export function QuickActions({
             <p className="text-sm font-medium">
               🔴 {quickActions.inactiveCustomersCount} client(s) n’ont pas visité depuis 21 jours
             </p>
-            <Link href="/dashboard/campaigns" className={buttonVariants({ size: 'sm', className: 'mt-3' })}>
+            <Link href="/dashboard/notifications" className={buttonVariants({ size: 'sm', className: 'mt-3' })}>
               ⚡ Lancer une relance express
             </Link>
           </div>

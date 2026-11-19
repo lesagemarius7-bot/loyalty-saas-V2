@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   Users,
   QrCode,
-  Gift,
   Palette,
   Megaphone,
   Zap,
@@ -56,11 +55,14 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    title: 'Carte & programme',
-    items: [
-      { label: 'Programme', href: '/dashboard/campaigns', icon: Gift },
-      { label: 'Design de la carte', href: '/dashboard/card-design', icon: Palette },
-    ],
+    // "Programme" (points par euro) used to live here as its own entry
+    // linking to /dashboard/campaigns — removed from the nav at the user's
+    // request. The page itself and its points_per_euro setting still exist
+    // (nothing deleted), just unreachable from the sidebar for now; the
+    // reward threshold/description it also used to edit are already
+    // covered by "Design de la carte" below.
+    title: 'Carte',
+    items: [{ label: 'Design de la carte', href: '/dashboard/card-design', icon: Palette }],
   },
   {
     title: 'Paramètres',
